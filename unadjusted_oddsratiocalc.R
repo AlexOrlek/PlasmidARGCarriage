@@ -1,5 +1,5 @@
-library(epitools)
-setwd("C:/Users/alexo/Dropbox/Oxford_2015/thesis/CORRECTIONS/Chapter_5/resistance_prediction")
+pacman::p_load(epitools)
+dir.create('output_unadjusted', showWarnings = FALSE)
 
 oddsdf<-read.table('output_exploratory/crosstabulation.tsv',as.is = TRUE,sep='\t',header=TRUE)
 
@@ -41,7 +41,7 @@ for (i in 1:length(resclasses)) {
         ORtable<-matrix(c(baselinenonresistance,exposednonresistance,baselineresistance,exposedresistance),nrow = 2, ncol = 2)
         ORoutput<-oddsratio.wald(ORtable)
         #check for complete separation
-        if (any(ORtable==0)) { #complete separation - fill with NA
+        if (any(ORtable==0)) {  # complete separation - fill with NA
           ors<-c(ors,NA)
           lowercis<-c(lowercis,NA)
           uppercis<-c(uppercis,NA)
@@ -88,11 +88,11 @@ oddsdf$ProbabilityScaleUpper95CI<-probuppercis
 oddsdf$`p-valueChi`<-pvalueschi
 oddsdf$`p-valueFisher`<-pvaluesfisher
 
-#re-order factor levels
-geographiesdf<-oddsdf[oddsdf$FactorVariable=='geographies',]
-geographiesdf<-do.call(rbind,lapply(split(geographiesdf,geographiesdf$ResistanceClass),function(x) x[match(c("High-income","Middle-income","EU","China","United States","other"),x$FactorLevel),]))
-oddsdf[oddsdf$FactorVariable=='geographies',]<-geographiesdf
+# re-order factor levels
+geographiesdf<-oddsdf[oddsdf$FactorVariable=='GeographicLocation',]
+geographiesdf<-do.call(rbind,lapply(split(geographiesdf,geographiesdf$ResistanceClass),function(x) x[match(c("high-income","middle-income","EU","China","United States","other"),x$FactorLevel),]))
+oddsdf[oddsdf$FactorVariable=='GeographicLocation',]<-geographiesdf
 
-#save
+# save
 write.table(oddsdf,file='output_unadjusted/unadjustedodds.tsv',quote=FALSE,sep='\t',row.names = FALSE)
 

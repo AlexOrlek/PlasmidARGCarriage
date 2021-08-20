@@ -1,0 +1,10 @@
+README
+OLD/
+std.err
+std.out
+TESTING/
+.Rhistory
+output_adjusted/
+output_exploratory/
+output_exploratory_confounding/
+output_unadjusted/
