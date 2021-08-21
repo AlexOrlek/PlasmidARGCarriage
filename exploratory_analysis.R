@@ -6,7 +6,7 @@ outcomeclasses<-c('aminoglycoside','betalactam_carbapenem','betalactam_ESBL','be
 # load data
 plasmiddf<-convert(in_file = 'data/Appendix_2.xlsx',out_file='data/Appendix_2G.tsv',in_opts=list(sheet=7))  # data is quoted to preserve dates; convert to tsv and re-load data
 plasmiddf<-read.table('data/Appendix_2G.tsv',header=TRUE,quote="'",sep='\t',as.is=TRUE)
-plasmiddf<-plasmiddf[plasmiddf$InDeduplicatedDataset==TRUE,]
+plasmiddf<-plasmiddf[plasmiddf$InFinalDataset==TRUE,]
 #nrow(plasmiddf) #14143
 
 # ---------------------------
@@ -57,7 +57,7 @@ sp<-sp + stat_bin2d(bins=50)
 spdat<-ggplot_build(sp)
 spdat<-spdat[[1]][[1]][,'count']
 sp<-sp + scale_fill_gradient(low="lightblue", high="red", limits=c(0, max(spdat))) + 
-  ggtitle(gsubfn('%1|%2',list('%1'=colcreatepearson,'%2'=nrow(colcreatedatedf)),"Pearson's correlation (r)=%1; n=%2")) + 
+  ggtitle(gsubfn('%1|%2',list('%1'=colcreatepearson,'%2'=nrow(colcreatedatedf)),"Pearson's correlation (r)=%1; n=%2")) + theme_bw() +
   theme(plot.title = element_text(size=10),panel.grid.major = element_blank(),panel.grid.minor = element_blank()) + xlab('Collection Date') + ylab('Create Date') + scale_x_continuous(limits=c(1910,2020),breaks=c(1930,1950,1970,1990,2010))
 
 pdf('output_exploratory/CollectionDate_CreateDate_scatter.pdf',5,5)
