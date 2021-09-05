@@ -349,7 +349,7 @@ finaldftrunc$CollectionDate<-finaldftrunc$CollectionDate-round(as.numeric(Collec
 finaldftrunc$log10PlasmidSize<-finaldftrunc$log10PlasmidSize - 4
 
 # write to file
-write.table(finaldftrunc,'data/plasmiddf_transformed.tsv',col.names=TRUE,row.names=FALSE,sep='\t',quote=FALSE)
+write.table(finaldftrunc,'data/plasmiddf_transformed.tsv',col.names=TRUE,row.names=FALSE,sep='\t',quote=FALSE)  # this file is appendix 2H
 
 # write truncation thresholds to file
 trunccutofffilename<-'data/truncationcutoffs.tsv'

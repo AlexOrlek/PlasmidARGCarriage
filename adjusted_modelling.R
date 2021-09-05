@@ -51,9 +51,6 @@ if (modelname=='mainmodel') {
 } else if (modelname=='mainmodel_minus_log10PlasmidSize') {
   outputnames_subset<-c('InsertionSequenceDensity','NumOtherResistanceClasses','CollectionDate','Integron','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(InsertionSequenceDensity,k=5)+s(NumOtherResistanceClasses,k=5)+s(CollectionDate,k=3)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
-} else if (modelname=='mainmodel_minus_InsertionSequenceDensity') {
-  outputnames_subset<-c('log10PlasmidSize','NumOtherResistanceClasses','CollectionDate','Integron','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
-  frmtext<-'outcome%s~s(log10PlasmidSize,k=5)+s(NumOtherResistanceClasses,k=5)+s(CollectionDate,k=3)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
   
   #models with multiple terms removed
 } else if (modelname=='mainmodel_minus_RepliconCarriage_NumOtherResistanceClasses') {
@@ -68,10 +65,10 @@ if (modelname=='mainmodel') {
 } else if (modelname=='mainmodel_minus_BiocideMetalResistance_Integron') {
   outputnames_subset<-c('log10PlasmidSize','InsertionSequenceDensity','NumOtherResistanceClasses','CollectionDate','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(log10PlasmidSize,k=5)+s(InsertionSequenceDensity,k=5)+s(NumOtherResistanceClasses,k=5)+s(CollectionDate,k=3)+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
-} else if (modelname=='mainmodel_minus_log10PlasmidSize_InsertionSequenceDensity') {
-  outputnames_subset<-c('NumOtherResistanceClasses','CollectionDate','Integron','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
-  frmtext<-'outcome%s~s(NumOtherResistanceClasses,k=5)+s(CollectionDate,k=3)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
-} else if (modelname=='mainmodel_minus_associatedfactorsofConjugativeSystem') {
+} else if (modelname=='mainmodel_minus_3associatedfactorsofConjugativeSystem') {
+  outputnames_subset<-c('InsertionSequenceDensity','CollectionDate','Integron','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','Virulence','GeographicLocation','IsolationSource')
+  frmtext<-'outcome%s~s(InsertionSequenceDensity,k=5)+s(CollectionDate,k=3)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+Virulence+GeographicLocation+IsolationSource'
+} else if (modelname=='mainmodel_minus_6associatedfactorsofConjugativeSystem') {
   outputnames_subset<-c('CollectionDate','BiocideMetalResistance','ConjugativeSystem','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(CollectionDate,k=3)+BiocideMetalResistance+ConjugativeSystem+Virulence+GeographicLocation+IsolationSource'
 } else {
