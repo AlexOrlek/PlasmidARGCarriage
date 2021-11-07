@@ -1,11 +1,11 @@
-pacman::p_load(mgcv, data.table)
+pacman::p_load(tidyverse, mgcv, data.table)
 source('functions.R')
 dir.create('output_adjusted', showWarnings = FALSE)
 dir.create('output_adjusted/exploratory', showWarnings = FALSE)
 set.seed(42)
 
 finaldftrunc<-read.table('data/plasmiddf_transformed.tsv',header=TRUE,sep='\t',stringsAsFactors = TRUE,quote = "",comment.char = "")
-outcomeclasses<-c('aminoglycoside','betalactam_carbapenem','betalactam_ESBL','betalactam_other','macrolide','phenicol','quinolone','sulphonamide','tetracycline','trimethoprim')
+outcomeclasses<-c('aminoglycoside','phenicol','sulphonamide','tetracycline','macrolide','TEM.1','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
 
 # convert categorical variables to factors
 finaldftrunc$BiocideMetalResistance<-as.factor(finaldftrunc$BiocideMetalResistance)
@@ -16,14 +16,39 @@ finaldftrunc$GeographicLocation<-factor(finaldftrunc$GeographicLocation, ordered
 finaldftrunc$IsolationSource<-factor(finaldftrunc$IsolationSource, ordered = FALSE,levels = c("human", "livestock","other"))
 finaldftrunc$RepliconCarriage<-factor(finaldftrunc$RepliconCarriage, ordered = FALSE,levels = c("untyped", "single-replicon", "multi-replicon"))
 finaldftrunc$HostTaxonomy<-factor(finaldftrunc$HostTaxonomy, ordered = FALSE,levels = c("Enterobacteriaceae", "Proteobacteria_other", "Firmicutes","other"))
+finaldftrunc$HostTaxonomy<-factor(finaldftrunc$HostTaxonomy,levels=c('Enterobacteriaceae','Proteobacteria (non-Enterobacteriaceae)','Firmicutes','other'))
 for (outcomeclass in outcomeclasses) {
   finaldftrunc[,gsub('%s',outcomeclass,'outcome%s')]<-as.factor(finaldftrunc[,gsub('%s',outcomeclass,'outcome%s')])
 }
 
 
 # ---------------------------
-# initial modelling (test different possible model structures with largest outcome class [aminoglycoside])
+# initial modelling (test different possible model structures with smallest outcomeclass [colistin] and largest outcome class [aminoglycoside])
 
+# colistin models
+outcomeclass <- 'colistin'
+# failed model - inadequate df
+frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize)+s(InsertionSequenceDensity)+s(NumOtherResistanceClasses%s)+s(CollectionDate)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+model1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
+# Error in smooth.construct.tp.smooth.spec(object, dk$data, dk$knots) : 
+#   A term has fewer unique covariate combinations than specified maximum degrees of freedom
+
+# initial model that works
+frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=5)+s(InsertionSequenceDensity,k=5)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+model1.1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
+gam.check(model1.1)  # log10PlasmidSize basis dimension inadequate at p < 0.0001; InsertionSequenceDensity inadequate at p < 0.05
+
+# increasing InsertionSequenceDensity and log10PlasmidSize basis dimensions fails to resolve low p-value (see gam.check output)
+frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=7)+s(InsertionSequenceDensity,k=7)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+model1.2.1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
+gam.check(model1.2.1)
+
+frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=10)+s(InsertionSequenceDensity,k=10)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+model1.2.2<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
+gam.check(model1.2.2)
+
+
+# aminoglycoside models
 outcomeclass<-'aminoglycoside'
 
 # failed model - inadequate df
@@ -33,16 +58,16 @@ model1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
 #   A term has fewer unique covariate combinations than specified maximum degrees of freedom
 
 # initial model that works
-frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=5)+s(InsertionSequenceDensity,k=5)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=3)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=5)+s(InsertionSequenceDensity,k=5)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
 model1.1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
 gam.check(model1.1)  # log10PlasmidSize basis dimension inadequate at p < 0.0001; InsertionSequenceDensity inadequate at p < 0.05
 
 # increasing InsertionSequenceDensity and log10PlasmidSize basis dimensions fails to resolve low p-value (see gam.check output)
-frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=7)+s(InsertionSequenceDensity,k=7)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=3)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=7)+s(InsertionSequenceDensity,k=7)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
 model1.2.1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
 gam.check(model1.2.1)
 
-frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=10)+s(InsertionSequenceDensity,k=10)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=3)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=10)+s(InsertionSequenceDensity,k=10)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
 model1.2.2<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
 gam.check(model1.2.2)
 
@@ -64,7 +89,7 @@ for (outcomeclass in outcomeclasses) {
   #need to temporarily rename NumOtherResistanceClasses%s column so that all models have same explanatory variable names
   predictorindx<-which(dfcolnames==gsub('%s',outcomeclass,'NumOtherResistanceClasses%s'))
   colnames(finaldftrunc)[predictorindx]<-'NumOtherResistanceClasses'
-  frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=5)+s(InsertionSequenceDensity,k=5)+s(NumOtherResistanceClasses,k=5)+s(CollectionDate,k=3)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+  frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=5)+s(InsertionSequenceDensity,k=5)+s(NumOtherResistanceClasses,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
   modellist[[outcomeclass]]<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
   colnames(finaldftrunc)[predictorindx]<-gsub('%s',outcomeclass,'NumOtherResistanceClasses%s')
 }

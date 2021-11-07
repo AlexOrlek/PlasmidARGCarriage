@@ -20,11 +20,12 @@ Rscript exploratory_analysis_confounding.R
 
 Rscript unadjusted_oddsratiocalc.R
 Rscript unadjusted_plotodds.R
+bash run_unadjusted_modelling.sh  # runs unadjusted_modelling.R; specify nthreads using -j argument
 
 # adjusted analysis: construct and visualise multivariate GAM models using the mgcv package; compare output from different models
 
 Rscript adjusted_modelling_exploratory.R
-bash run_adjusted_modelling.sh nthreads  # runs adjusted_modelling.R; specify nthreads; specify models to run in modelnames argument.
+bash run_adjusted_modelling.sh  # runs adjusted_modelling.R; specify nthreads using -j argument; specify models to run in modelnames argument.
 Rscript adjusted_modelling_parametric_comparison.R
 Rscript adjusted_modelling_smooth_comparison.R
 

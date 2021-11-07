@@ -1,13 +1,14 @@
-pacman::p_load(ggplot2, gsubfn, knitr, rio, countrycode, cowplot, car, rcompanion, rstatix, eply)
+pacman::p_load(tidyverse, gsubfn, knitr, rio, countrycode, cowplot, car, rcompanion, rstatix, eply)
 source('functions.R')
 dir.create('output_exploratory', showWarnings = FALSE)
-outcomeclasses<-c('aminoglycoside','betalactam_carbapenem','betalactam_ESBL','betalactam_other','macrolide','phenicol','quinolone','sulphonamide','tetracycline','trimethoprim')
 
 # load data
 plasmiddf<-convert(in_file = 'data/Appendix_2.xlsx',out_file='data/Appendix_2G.tsv',in_opts=list(sheet=7))  # data is quoted to preserve dates; convert to tsv and re-load data
 plasmiddf<-read.table('data/Appendix_2G.tsv',header=TRUE,quote="'",sep='\t',as.is=TRUE)
 plasmiddf<-plasmiddf[plasmiddf$InFinalDataset==TRUE,]
 #nrow(plasmiddf) #14143
+plasmiddf <- plasmiddf %>% rename(carbapenem = betalactam_carbapenem, ESBL = betalactam_ESBL, `TEM-1` = betalactam_TEM.1)
+outcomeclasses<-c('aminoglycoside','phenicol','sulphonamide','tetracycline','macrolide','TEM-1','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
 
 # ---------------------------
 # resistance class outcome variables
@@ -29,7 +30,8 @@ write.table(resgenestotalplasmids,file='output_exploratory/resgenestotalplasmids
 # plot resistance class interaction heatmap (coloured by proportion of total class)
 orderoutcomeclasses<-match(rownames(resgenestotalplasmids),outcomeclasses)
 orderoutcomeclasses<-orderoutcomeclasses[!is.na(orderoutcomeclasses)]
-resgeneclasseshm<-resclassheatmap(resgenedfbinary,outcomeclasses[orderoutcomeclasses],twoway=TRUE)
+#resgeneclasseshm<-resclassheatmap(resgenedfbinary,outcomeclasses[orderoutcomeclasses],twoway=TRUE)
+resgeneclasseshm<-resclassheatmap(resgenedfbinary,outcomeclasses,twoway=TRUE)
 pdf('output_exploratory/resgeneclasseshm.pdf')
 resgeneclasseshm
 dev.off()
@@ -489,3 +491,4 @@ biserialcor_matrix<-as.data.frame(biserialcor_matrix)
 biserialcor_matrix_abs<-abs(biserialcor_matrix)
 write.table(biserialcor_matrix,file='output_exploratory/cor_spearmans_numeric_binary_matrix.tsv',sep='\t',row.names = TRUE,col.names = NA)
 write.table(biserialcor_matrix_abs,file='output_exploratory/cor_spearmans_numeric_binary_abs_matrix.tsv',sep='\t',row.names = TRUE,col.names = NA)
+

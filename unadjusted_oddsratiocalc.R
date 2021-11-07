@@ -93,6 +93,9 @@ geographiesdf<-oddsdf[oddsdf$FactorVariable=='GeographicLocation',]
 geographiesdf<-do.call(rbind,lapply(split(geographiesdf,geographiesdf$ResistanceClass),function(x) x[match(c("high-income","middle-income","EU","China","United States","other"),x$FactorLevel),]))
 oddsdf[oddsdf$FactorVariable=='GeographicLocation',]<-geographiesdf
 
+# sort by outcome class
+oddsdf <- oddsdf[order(oddsdf$ResistanceClass,oddsdf$FactorVariable),]
+
 # save
 write.table(oddsdf,file='output_unadjusted/unadjustedodds.tsv',quote=FALSE,sep='\t',row.names = FALSE)
 
