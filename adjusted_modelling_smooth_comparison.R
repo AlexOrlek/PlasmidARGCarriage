@@ -4,8 +4,8 @@ alternativemodelnames<-c('mainmodel_minus_NumOtherResistanceClasses','mainmodel_
 
 outcomeclasses<-c('aminoglycoside','phenicol','sulphonamide','tetracycline','macrolide','TEM.1','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
 outputnames<-c('log10PlasmidSize','InsertionSequenceDensity','NumOtherResistanceClasses','CollectionDate')
-xlabs<-c('log10 Plasmid size (centred on 10 kb)','Insertion sequence density (frequency per 10 kb)','Other resistance gene classes','Years since initial collection year')
-ggtitles<-c('      log10 Plasmid size (kb)\n      reference: 10 kb\n','      Insertion sequence density\n      reference: 0\n','      Number of other resistance gene classes\n      reference: 0\n','      Collection date\n      reference: initial year (1994)\n')
+xlabs<-c('log10 Plasmid size (centred on 10 kb)','Insertion sequence density (frequency per 10 kb)','Other resistance gene classes','Years since reference collection year')
+ggtitles<-c('        log10 Plasmid size (kb)\n        reference: 10 kb\n','        Insertion sequence density\n        reference: 0\n','        Number of other resistance gene classes\n        reference: 0\n','        Collection date\n        reference: collection year 1994\n')
 
 
 brewerpal1<-brewer.pal(8,'Set1')
@@ -97,13 +97,17 @@ for (modelname in alternativemodelnames) {
     #logodds limits
     lowerlim_logodds<--5
     upperlim_logodds<-5
+    if (outputname=='InsertionSequenceDensity') {
+      lowerlim_logodds<--4
+      upperlim_logodds<-6
+    }
     if (outputname=='NumOtherResistanceClasses') {
-      lowerlim_logodds<--3
-      upperlim_logodds<-7
+      lowerlim_logodds<--4
+      upperlim_logodds<-8
     }
     if (outputname=='CollectionDate') {
-      lowerlim_logodds<--8
-      upperlim_logodds<-2
+      lowerlim_logodds<--2
+      upperlim_logodds<-10
     }
     #prob limits
     lowerlim_prob<-0
@@ -117,9 +121,7 @@ for (modelname in alternativemodelnames) {
       outcomeclass<-outcomeclasses[j]
       #log-odds plot
       p_logodds<-ggplot(datalist_prob[[modelname]][[outputname]][[outcomeclass]],aes(x=x,y=y,colour=modeltype,linetype=modeltype)) +
-        geom_hline(yintercept = 0,linetype='solid',colour='light grey',size=0.3) + geom_line() + theme_bw() +
-        theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-14),'pt'),axis.text=element_text(size=rel(1.1))) +
-        xlab('') + ylab('') + ggtitle(gsub('.','-',outcomeclass,fixed=TRUE)) +
+        geom_hline(yintercept = 0,linetype='solid',colour='light grey',size=0.3) + geom_line() + theme_bw() + xlab('') + ylab('') + ggtitle(gsub('.','-',outcomeclass,fixed=TRUE)) +
         guides(colour=FALSE,linetype=FALSE) + 
         scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(lowerlim_logodds,upperlim_logodds)) +
         scale_x_continuous(breaks=scales::pretty_breaks()) +
@@ -132,11 +134,21 @@ for (modelname in alternativemodelnames) {
       if (!j %in% c(1,7)) {
         p_logodds<-p_logodds+theme(axis.text.y = element_text(colour='white'),axis.ticks.y = element_blank())
       }
+      #further customise plots
+      if (j == 1) {
+        p_logodds <- p_logodds + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-4),'pt'),axis.text=element_text(size=rel(1.1)))
+      } else if (j == 7) {
+        p_logodds <- p_logodds + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-4),'pt'),axis.text=element_text(size=rel(1.1)))
+      } else if (j == 6) {
+        p_logodds <- p_logodds + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+      } else if (j > 7) {
+        p_logodds <- p_logodds + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+      } else {
+        p_logodds <- p_logodds + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+      }
       #prob plot (N.B no geom_hline since different models linked to different baseline probabilities)
       p_prob<-ggplot(datalist_prob[[modelname]][[outputname]][[outcomeclass]],aes(x=x,y=ty,colour=modeltype,linetype=modeltype)) +
-        geom_line() + theme_bw() +
-        theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-14),'pt'),axis.text=element_text(size=rel(1.1))) +
-        xlab('') + ylab('') + ggtitle(gsub('.','-',outcomeclass,fixed=TRUE)) +
+        geom_line() + theme_bw() + xlab('') + ylab('') + ggtitle(gsub('.','-',outcomeclass,fixed=TRUE)) +
         guides(colour=FALSE,linetype=FALSE) + 
         scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(lowerlim_prob,upperlim_prob)) +
         scale_x_continuous(breaks=scales::pretty_breaks()) +
@@ -148,6 +160,18 @@ for (modelname in alternativemodelnames) {
       }
       if (!j %in% c(1,6)) {
         p_prob<-p_prob+theme(axis.text.y = element_text(colour='white'),axis.ticks.y = element_blank())
+      }
+      #further customise plot
+      if (j == 1) {
+        p_prob <- p_prob + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-4),'pt'),axis.text=element_text(size=rel(1.1)))
+      } else if (j == 7) {
+        p_prob <- p_prob + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-4),'pt'),axis.text=element_text(size=rel(1.1)))
+      } else if (j == 6) {
+        p_prob <- p_prob + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+      } else if (j > 7) {
+        p_prob <- p_prob + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+      } else {
+        p_prob <- p_prob + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
       }
       #assign plots to list
       smoothplotcomparisonlist_logodds[[modelname]][[outputname]][[outcomeclass]]<-p_logodds
@@ -183,16 +207,16 @@ for (modelname in alternativemodelnames) {
     }
     #log-odds
     pdf(gsubfn('%1|%2',list('%1'=modelname,'%2'=outputname),'output_adjusted/%1/coefficientplots/logoddsscale/%2_vs_mainmodel.pdf'),width=width,height=height)
-    gridPrint(grobs=smoothplotcomparisonlist_logodds[[modelname]][[outputname]][outcomeclasses],nrow=2,bottom=textGrob(xlabs[i],gp=gpar(fontsize=15)),left=textGrob('Effect on log odds',gp=gpar(fontsize=15),rot=90),top = grid::textGrob(ggtitles[i], x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=13,lineheight=1)))
+    gridPrint(grobs=smoothplotcomparisonlist_logodds[[modelname]][[outputname]][outcomeclasses],nrow=2,bottom=textGrob(xlabs[i],gp=gpar(fontsize=15), vjust=-0.1),left=textGrob('Effect on log odds',gp=gpar(fontsize=15),rot=90, vjust=1),top = grid::textGrob(ggtitles[i], x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=13,lineheight=1)))
     dev.off()
     #prob
     pdf(gsubfn('%1|%2',list('%1'=modelname,'%2'=outputname),'output_adjusted/%1/coefficientplots/probscale/%2_vs_mainmodel.pdf'),width=width,height=height)
-    gridPrint(grobs=smoothplotcomparisonlist_prob[[modelname]][[outputname]][outcomeclasses],nrow=2,bottom=textGrob(xlabs[i],gp=gpar(fontsize=15)),left=textGrob('Effect on predicted probability',gp=gpar(fontsize=15),rot=90),top = grid::textGrob(ggtitles[i], x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=13,lineheight=1)))
+    gridPrint(grobs=smoothplotcomparisonlist_prob[[modelname]][[outputname]][outcomeclasses],nrow=2,bottom=textGrob(xlabs[i],gp=gpar(fontsize=15), vjust=-0.1),left=textGrob('Effect on predicted probability',gp=gpar(fontsize=15),rot=90, vjust=1),top = grid::textGrob(ggtitles[i], x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=13,lineheight=1)))
     dev.off()
     #prob y0to1
     pdf(gsubfn('%1|%2',list('%1'=modelname,'%2'=outputname),'output_adjusted/%1/coefficientplots/probscale/ylim0to1_%2_vs_mainmodel.pdf'),width=width,height=height)
     rescaledplots<-lapply(smoothplotcomparisonlist_prob[[modelname]][[outputname]], function(x) x + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(0,1)))
-    gridPrint(grobs=rescaledplots[outcomeclasses],nrow=2,bottom=textGrob(xlabs[i],gp=gpar(fontsize=15)),left=textGrob('Effect on predicted probability',gp=gpar(fontsize=15),rot=90),top = grid::textGrob(ggtitles[i], x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=13,lineheight=1)))
+    gridPrint(grobs=rescaledplots[outcomeclasses],nrow=2,bottom=textGrob(xlabs[i],gp=gpar(fontsize=15), vjust=-0.1),left=textGrob('Effect on predicted probability',gp=gpar(fontsize=15),rot=90, vjust=1),top = grid::textGrob(ggtitles[i], x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=13,lineheight=1)))
     dev.off()
   }
 }

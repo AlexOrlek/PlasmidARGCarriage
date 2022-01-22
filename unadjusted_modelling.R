@@ -26,21 +26,21 @@ dir.create(file.path(gsub('%s',modelname,'output_unadjusted/%s/coefficientplots/
 
 
 if (modelname=='log10PlasmidSize') {
-  frmtext<-'outcome%s~s(log10PlasmidSize,k=5)'
-  myggtitle<-'      log10 Plasmid size (kb)\n      reference: 10 kb\n'
+  frmtext<-'outcome%s~s(log10PlasmidSize,k=5,pc=0)'
+  myggtitle<-'       log10 Plasmid size (kb)\n       reference: 10 kb\n'
   myxlab<-'log10 Plasmid size (centred on 10 kb)'
 } else if (modelname=='InsertionSequenceDensity') {
-  frmtext<-'outcome%s~s(InsertionSequenceDensity,k=5)'
-  myggtitle<-'      Insertion sequence density\n      reference: 0\n'
+  frmtext<-'outcome%s~s(InsertionSequenceDensity,k=5,pc=0)'
+  myggtitle<-'       Insertion sequence density\n       reference: 0\n'
   myxlab<-'Insertion sequence density (frequency per 10 kb)'
 } else if (modelname=='NumOtherResistanceClasses') {
-  frmtext<-'outcome%s~s(NumOtherResistanceClasses,k=5)'
-  myggtitle<-'      Number of other resistance gene classes\n      reference: 0\n'
+  frmtext<-'outcome%s~s(NumOtherResistanceClasses,k=5,pc=0)'
+  myggtitle<-'       Number of other resistance gene classes\n       reference: 0\n'
   myxlab<-'Other resistance gene classes'
 } else if (modelname=='CollectionDate') {
-  frmtext<-'outcome%s~s(CollectionDate,k=5)'
-  myggtitle<-'      Collection date\n      reference: initial year (1994)\n'
-  myxlab<-'Years since initial collection year'
+  frmtext<-'outcome%s~s(CollectionDate,k=5,pc=0)'
+  myggtitle<-'       Collection date\n       reference: collection year 1994\n'
+  myxlab<-'Years since reference collection year'
 } else {
   stop('modelname not recognised')
 }
@@ -186,18 +186,18 @@ if (modelname=='log10PlasmidSize') {
   upperlim_prob<-0.4
 }
 if (modelname=='InsertionSequenceDensity') {
-  lowerlim<--5
-  upperlim<-5
+  lowerlim<--4
+  upperlim<-6
   upperlim_prob<-0.4
 }
 if (modelname=='NumOtherResistanceClasses') {
-  lowerlim<--3
-  upperlim<-7
+  lowerlim<--4
+  upperlim<-8
   upperlim_prob<-1
 }
 if (modelname=='CollectionDate') {
-  lowerlim<--7
-  upperlim<-5
+  lowerlim<--2
+  upperlim<-10
   upperlim_prob<-0.4
 }
 
@@ -231,8 +231,22 @@ for (j in 1:length(outcomeclasses)) {
   o2<-o2 + ggtitle(gsub('.','-',outcomeclasses[j],fixed=TRUE)) + 
     annotate('text',x=-Inf,y=Inf,label=paste('edf =',edf,collapse=''),hjust=-.1,vjust=1.8,colour="#525252",size=4)
   #further customise plots
-  o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
-  o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+  if (j == 1) {
+    o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-4),'pt'),axis.text=element_text(size=rel(1.1)))
+    o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-4),'pt'),axis.text=element_text(size=rel(1.1)))
+  } else if (j == 7) {
+    o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-4),'pt'),axis.text=element_text(size=rel(1.1)))
+    o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-4),'pt'),axis.text=element_text(size=rel(1.1)))
+  } else if (j == 6) {
+    o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+    o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+  } else if (j > 7) {
+    o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+    o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+  } else {
+    o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+    o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+  }
   #adjust probability y axis scale
   o3<-o2
   o3<-o3 + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(0,1))
@@ -260,14 +274,15 @@ width=12
 height=5.6
 probwidth=12.7  # need to adjust for longer ylab text
 
+
 pdf(gsubfn('%1|%2',list('%1'=modelname,'%2'=modelname),'output_unadjusted/%1/coefficientplots/logoddsscale/%2.pdf'),width=width,height=height)
-gridPrint(grobs=(smoothplotlist1[[modelname]]),nrow=2,bottom=textGrob(myxlab,gp=gpar(fontsize=15)),left=textGrob('Effect on log odds',gp=gpar(fontsize=15),rot=90),top = grid::textGrob(myggtitle, x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=13,lineheight=1)))
+gridPrint(grobs=(smoothplotlist1[[modelname]]),nrow=2,bottom=textGrob(myxlab,gp=gpar(fontsize=15), vjust=-0.1),left=textGrob('Effect on log odds',gp=gpar(fontsize=15),rot=90, vjust=1),top = grid::textGrob(myggtitle, x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=15,lineheight=1)))
 dev.off()
 pdf(gsubfn('%1|%2',list('%1'=modelname,'%2'=modelname),'output_unadjusted/%1/coefficientplots/probscale/%2.pdf'),width=probwidth,height=height)
-gridPrint(grobs=(smoothplotlist2[[modelname]]),nrow=2,bottom=textGrob(myxlab,gp=gpar(fontsize=15)),left=textGrob('Effect on predicted probability',gp=gpar(fontsize=15),rot=90),top = grid::textGrob(myggtitle, x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=13,lineheight=1)))
+gridPrint(grobs=(smoothplotlist2[[modelname]]),nrow=2,bottom=textGrob(myxlab,gp=gpar(fontsize=15), vjust=-0.1),left=textGrob('Effect on predicted probability',gp=gpar(fontsize=15),rot=90, vjust=1),top = grid::textGrob(myggtitle, x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=15,lineheight=1)))
 dev.off()
 pdf(gsubfn('%1|%2',list('%1'=modelname,'%2'=modelname),'output_unadjusted/%1/coefficientplots/probscale/ylim0to1_%2.pdf'),width=probwidth,height=height)
-gridPrint(grobs=(smoothplotlist3[[modelname]]),nrow=2,bottom=textGrob(myxlab,gp=gpar(fontsize=15)),left=textGrob('Effect on predicted probability',gp=gpar(fontsize=15),rot=90),top = grid::textGrob(myggtitle, x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=13,lineheight=1)))
+gridPrint(grobs=(smoothplotlist3[[modelname]]),nrow=2,bottom=textGrob(myxlab,gp=gpar(fontsize=15), vjust=-0.1),left=textGrob('Effect on predicted probability',gp=gpar(fontsize=15),rot=90, vjust=1),top = grid::textGrob(myggtitle, x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=15,lineheight=1)))
 dev.off()
 
 

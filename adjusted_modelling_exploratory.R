@@ -34,16 +34,16 @@ model1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
 #   A term has fewer unique covariate combinations than specified maximum degrees of freedom
 
 # initial model that works
-frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=5)+s(InsertionSequenceDensity,k=5)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(NumOtherResistanceClasses%s,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
 model1.1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
-gam.check(model1.1)  # log10PlasmidSize basis dimension inadequate at p < 0.0001; InsertionSequenceDensity inadequate at p < 0.05
+gam.check(model1.1)  # log10PlasmidSize, InsertionSequenceDensity, CollectionDate basis dimension inadequate
 
 # increasing InsertionSequenceDensity and log10PlasmidSize basis dimensions fails to resolve low p-value (see gam.check output)
-frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=7)+s(InsertionSequenceDensity,k=7)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=7)+s(InsertionSequenceDensity,k=7)+s(NumOtherResistanceClasses%s,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
 model1.2.1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
 gam.check(model1.2.1)
 
-frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=10)+s(InsertionSequenceDensity,k=10)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=10)+s(InsertionSequenceDensity,k=10)+s(NumOtherResistanceClasses%s,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
 model1.2.2<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
 gam.check(model1.2.2)
 
@@ -58,16 +58,16 @@ model1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
 #   A term has fewer unique covariate combinations than specified maximum degrees of freedom
 
 # initial model that works
-frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=5)+s(InsertionSequenceDensity,k=5)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(NumOtherResistanceClasses%s,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
 model1.1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
-gam.check(model1.1)  # log10PlasmidSize basis dimension inadequate at p < 0.0001; InsertionSequenceDensity inadequate at p < 0.05
+gam.check(model1.1)  # log10PlasmidSize and NumOtherResistanceClasses basis dimension inadequate at p < 0.0001; InsertionSequenceDensity inadequate at p < 0.05
 
 # increasing InsertionSequenceDensity and log10PlasmidSize basis dimensions fails to resolve low p-value (see gam.check output)
-frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=7)+s(InsertionSequenceDensity,k=7)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=7)+s(InsertionSequenceDensity,k=7)+s(NumOtherResistanceClasses%s,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
 model1.2.1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
 gam.check(model1.2.1)
 
-frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=10)+s(InsertionSequenceDensity,k=10)+s(NumOtherResistanceClasses%s,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=10)+s(InsertionSequenceDensity,k=10)+s(NumOtherResistanceClasses%s,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
 model1.2.2<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
 gam.check(model1.2.2)
 
@@ -89,7 +89,7 @@ for (outcomeclass in outcomeclasses) {
   #need to temporarily rename NumOtherResistanceClasses%s column so that all models have same explanatory variable names
   predictorindx<-which(dfcolnames==gsub('%s',outcomeclass,'NumOtherResistanceClasses%s'))
   colnames(finaldftrunc)[predictorindx]<-'NumOtherResistanceClasses'
-  frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=5)+s(InsertionSequenceDensity,k=5)+s(NumOtherResistanceClasses,k=5)+s(CollectionDate,k=5)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
+  frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(NumOtherResistanceClasses,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
   modellist[[outcomeclass]]<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
   colnames(finaldftrunc)[predictorindx]<-gsub('%s',outcomeclass,'NumOtherResistanceClasses%s')
 }
@@ -109,4 +109,4 @@ for (outcomeclass in outcomeclasses) {
 }
 
 
-# N.B gam.check residual checking p-values are stochastic (but overall, inadequacy of log10PlasmidSize basis dimension is supported)
+# N.B overall, gam.check residual checking p-values suggest log10PlasmidSize and InsertionSequenceDensity smooths may have inadequate basis dimensionality

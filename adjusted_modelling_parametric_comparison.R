@@ -16,11 +16,8 @@ unadjusteddf<-unadjusteddf[unadjusteddf$logOddsRatio!='baseline' | is.na(unadjus
 unadjusteddf<-unadjusteddf[order(unadjusteddf$FactorVariable),]
 adjusteddf<-adjusteddf[order(adjusteddf$FactorVariable),]
 
-# append comparison to adjusteddf
-#adjusteddf$ProbabilityScale_unadjusted<-unadjusteddf$ProbabilityScale
-#adjusteddf$ProbabilityScale_difference_vs_unadjusted<-as.numeric(adjusteddf$ProbabilityScale)-as.numeric(adjusteddf$ProbabilityScale_unadjusted)
-adjusteddf$logOddsRatio_unadjusted<-unadjusteddf$logOddsRatio
-adjusteddf$logOddsRatio_difference_vs_unadjusted<-as.numeric(adjusteddf$logOddsRatio)-as.numeric(adjusteddf$logOddsRatio_unadjusted)
+# append unadjusted and unadjusted comparison to adjusteddf
+adjusteddf <- adjusteddf %>% inner_join(unadjusteddf, by = c('ResistanceClass','FactorVariable','FactorLevel'), suffix = c('','_unadjusted')) %>% select(-c('Count_NonResistancePlasmids', 'Count_ResistancePlasmids')) %>% rename(p.valueChi_unadjusted = p.valueChi, p.valueFisher_unadjusted = p.valueFisher) %>% mutate(OddsRatio_difference_vs_unadjusted = as.numeric(OddsRatio) - as.numeric(OddsRatio_unadjusted), logOddsRatio_difference_vs_unadjusted = as.numeric(logOddsRatio) - as.numeric(logOddsRatio_unadjusted))
 
 # save
 write.table(adjusteddf,file='output_adjusted/mainmodel/adjustedodds_vs_unadjusted.tsv',row.names = FALSE,col.names = TRUE,sep='\t')

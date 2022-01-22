@@ -8,3 +8,5 @@ output_adjusted/
 output_exploratory/
 output_exploratory_confounding/
 output_unadjusted/
+MISC
+data/plasmiddf_transformed.tsv

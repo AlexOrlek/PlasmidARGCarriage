@@ -3,8 +3,8 @@ source('functions.R')
 dir.create('output_exploratory', showWarnings = FALSE)
 
 # load data
-plasmiddf<-convert(in_file = 'data/Appendix_2.xlsx',out_file='data/Appendix_2G.tsv',in_opts=list(sheet=7))  # data is quoted to preserve dates; convert to tsv and re-load data
-plasmiddf<-read.table('data/Appendix_2G.tsv',header=TRUE,quote="'",sep='\t',as.is=TRUE)
+plasmiddf<-convert(in_file = 'data/Data_2.xlsx',out_file='data/Data_2H.tsv',in_opts=list(sheet=8))  # data is quoted to preserve dates; convert to tsv and re-load data
+plasmiddf<-read.table('data/Data_2H.tsv',header=TRUE,quote="'",sep='\t',as.is=TRUE)
 plasmiddf<-plasmiddf[plasmiddf$InFinalDataset==TRUE,]
 #nrow(plasmiddf) #14143
 plasmiddf <- plasmiddf %>% rename(carbapenem = betalactam_carbapenem, ESBL = betalactam_ESBL, `TEM-1` = betalactam_TEM.1)
@@ -159,9 +159,12 @@ countryregiondf<-as.data.frame(cbind(countries,eucountries,incomes))
 #-     Taiwan Antarctica    Reunion    Mayotte Martinique 
 #7284         93         58         10          3          2
 
-#create final geography vector
+#create final geography vector, and record breakdown of 'other' category
 WB_UMI_count<-0
 WB_LMI_count<-0
+other_missing <- vector()
+other_LowIncome <- vector()
+other_unknownIncome <- vector()
 geographies<-character(nrow(countryregiondf))
 for (i in 1:nrow(countryregiondf)) {
   #print(i)
@@ -170,6 +173,7 @@ for (i in 1:nrow(countryregiondf)) {
   income<-as.character(countryregiondf[i,"incomes"])
   if (country=='-') {
     geographies[i]<-'other'
+    other_missing <- c(other_missing, country)
   } 
   else if (country=='United States' || country=='China') {
     geographies[i]<-country
@@ -180,6 +184,7 @@ for (i in 1:nrow(countryregiondf)) {
   else {
     if (income=='WB_LI') {
       income='other'
+      other_LowIncome <- c(other_LowIncome, country)
     }
     else if (income=='WB_UMI' || income=='WB_LMI') {
       if (income=='WB_UMI') {
@@ -194,21 +199,33 @@ for (i in 1:nrow(countryregiondf)) {
     }
     else {
       income='other'
+      other_unknownIncome <- c(other_unknownIncome, country)
     }
     geographies[i]<-income
   }
 }
+
+GeographicLocation<-factor(geographies, ordered = FALSE,levels = c("high-income", "middle-income", "China", "United States", "EU", "other"))
+
 #> WB_UMI_count
 #[1] 593
 #> WB_LMI_count
 #[1] 362
 
-GeographicLocation<-factor(geographies, ordered = FALSE,levels = c("high-income", "middle-income", "China", "United States", "EU", "other"))
+# explore breakdown of 'other' category
+#sapply(list(other_missing, other_LowIncome, other_unknownIncome), length)  # 7284   70  166
+#table(other_LowIncome)
+#table(other_unknownIncome)
+#Antarctica Martinique    Mayotte    Reunion     Taiwan 
+#58          2          3         10         93
 
 
 # isolation source; refactored original variable (IsolationSource_unmergedfactorlevels), merging livestock categories and assigning non-livestock agriculture as "other", to avoid low numbers
-isolationsources<-vector()
-livestockpattern<-paste(c('aquaculture','cow','chicken','pig','turkey','sheep','poultry','goat','goose','duck','cow;pig'),collapse='|')
+isolationsources <- vector()
+livestockpattern <- paste(c('aquaculture','cow','chicken','pig','turkey','sheep','poultry','goat','goose','duck','cow;pig'),collapse='|')
+other_missing <- vector()
+other_uncategorised <- vector()
+other_agriculture <- vector()
 for (i in 1:nrow(plasmiddf)) {
   source<-plasmiddf$IsolationSource_unmergedfactorlevels[i]
   if (source=='human' || source=='sewage') {
@@ -216,15 +233,25 @@ for (i in 1:nrow(plasmiddf)) {
   }
   else if (source=='agriculture') {
     isolationsources<-c(isolationsources,'other')
+    other_agriculture <- c(other_agriculture, source)
   }
   else if (length(grep(livestockpattern,source,value=T))==1) {
     isolationsources<-c(isolationsources,'livestock')
   }
-  else {
+  else if (source=='-') {
     isolationsources<-c(isolationsources,'other')
+    other_missing <- c(other_missing, source)
+  } else {
+    stopifnot(source=='uncategorised')
+    isolationsources<-c(isolationsources,'other')
+    other_uncategorised <- c(other_uncategorised, source)
   }
 }
 IsolationSource<-factor(isolationsources, ordered = FALSE,levels = c("human", "livestock","other"))
+
+# explore breakdown of 'other' category
+sapply(list(other_missing, other_uncategorised, other_agriculture), length)  # 4317 5541  623
+
 
 
 # replicon carriage: untyped/single/multi-replicon type carriage
@@ -250,23 +277,39 @@ RepliconCarriage<-factor(reptypes, ordered = FALSE,levels = c("untyped", "single
 
 # host taxonomy
 taxa<-vector()
+other_missing <- vector()
+other_uncategorised <- vector()
 for (i in 1:nrow(plasmiddf)) {
   family<-plasmiddf$Family[i]
   phylum<-plasmiddf$Phylum[i]
+  species<-plasmiddf$Species[i]
   if (family=='Enterobacteriaceae') {
     taxa<-c(taxa,family)
   }
   else if (phylum=='Proteobacteria' || phylum=='Firmicutes') {
     taxa<-c(taxa,phylum)
   }
+  else if (all(c(plasmiddf$Phylum,plasmiddf$Class,plasmiddf$Order,plasmiddf$Family,plasmiddf$Genus,plasmiddf$Species)=='-')) {
+    taxa<-c(taxa,'other')
+    other_missing <- c(other_missing, '-')
+  }
   else {
     taxa<-c(taxa,'other')
+    other_uncategorised <- c(other_uncategorised, species)
   }
 }
+
 
 taxa[taxa=='Proteobacteria']<-'Proteobacteria_other'  # (non-Enterobacteriaceae Proteobacteria)
 HostTaxonomy<-factor(taxa, ordered = FALSE,levels = c("Enterobacteriaceae", "Proteobacteria_other", "Firmicutes","other"))
 
+# explore breakdown of 'other' category
+sapply(list(other_missing, other_uncategorised), length)  # 0 2219  # Note there were no rows where all where missing since uncultured bacterium is given as species where other taxonomic info is unknown
+rev(sort(table(other_uncategorised)))[1:10]
+#Borreliella burgdorferi       uncultured bacterium        Borreliella afzelii        Borreliella garinii         Rhodococcus hoagii      Chlamydia trachomatis     Bifidobacterium longum 
+#285                        267                         54                         33                         29                         27                         27 
+#Mycobacterium chimaera Corynebacterium glutamicum         Salinibacter ruber 
+#21                         21                         20 
 
 # ---------------------------
 # save explanatory and outcome variables to file; create per resistance class NumOtherResistanceClasses explanatory variables
@@ -351,7 +394,7 @@ finaldftrunc$CollectionDate<-finaldftrunc$CollectionDate-round(as.numeric(Collec
 finaldftrunc$log10PlasmidSize<-finaldftrunc$log10PlasmidSize - 4
 
 # write to file
-write.table(finaldftrunc,'data/plasmiddf_transformed.tsv',col.names=TRUE,row.names=FALSE,sep='\t',quote=FALSE)  # this file is appendix 2H
+write.table(finaldftrunc,'data/plasmiddf_transformed.tsv',col.names=TRUE,row.names=FALSE,sep='\t',quote=FALSE)  # this file is Data_2I
 
 # write truncation thresholds to file
 trunccutofffilename<-'data/truncationcutoffs.tsv'
