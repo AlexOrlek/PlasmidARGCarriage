@@ -61,8 +61,8 @@ for (i in 1:length(outputnames)) {
     upperlim<-8
   }
   if (outputname=='HostTaxonomy') {
-    lowerlim<--8
-    upperlim<-2
+    lowerlim<--6
+    upperlim<-4
   }
   p<-ggplot(factorvardf,aes(x=ResistanceClass,y=logOddsRatio,color=ResistanceClass)) + geom_hline(yintercept = 0,linetype='solid',colour='light grey',size=0.3) + geom_errorbar(aes(ymin=logLower95CI,ymax=logUpper95CI),colour='grey 42',linetype=1,width=0.5,size=0.4) + geom_point(size=2)
   p<-p + facet_wrap(~ FactorLevel, labeller=labeller(FactorLevel=labels), as.table=FALSE,ncol=numcols)
