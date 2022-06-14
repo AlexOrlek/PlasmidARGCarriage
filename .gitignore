@@ -9,4 +9,7 @@ output_exploratory/
 output_exploratory_confounding/
 output_unadjusted/
 MISC
-plasmiddf_transformed.tsv
+data/microreact-data-ncbi-plasmid-antibiotic-resistance.tsv
+data/Data_SIH.tsv
+data/plasmiddf_transformed.tsv
+data/truncationcutoffs.tsv

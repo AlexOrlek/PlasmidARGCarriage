@@ -3,38 +3,51 @@ source('functions.R')
 dir.create('output_exploratory', showWarnings = FALSE)
 
 # load data
-plasmiddf<-convert(in_file = 'data/Data_2.xlsx',out_file='data/Data_2H.tsv',in_opts=list(sheet=8))  # data is quoted to preserve dates; convert to tsv and re-load data
-plasmiddf<-read.table('data/Data_2H.tsv',header=TRUE,quote="'",sep='\t',as.is=TRUE)
+plasmiddf<-convert(in_file = 'data/Data_S1.xlsx',out_file='data/Data_S1H.tsv',in_opts=list(sheet='H'))  # data is quoted to preserve dates; convert to tsv and re-load data
+plasmiddf<-read.table('data/Data_S1H.tsv',header=TRUE,quote="'",sep='\t',as.is=TRUE)
 plasmiddf<-plasmiddf[plasmiddf$InFinalDataset==TRUE,]
 #nrow(plasmiddf) #14143
 plasmiddf <- plasmiddf %>% rename(carbapenem = betalactam_carbapenem, ESBL = betalactam_ESBL, `TEM-1` = betalactam_TEM.1)
-outcomeclasses<-c('aminoglycoside','phenicol','sulphonamide','tetracycline','macrolide','TEM-1','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
+outcomeclasses<-c('aminoglycoside','sulphonamide','tetracycline','phenicol','macrolide', 'trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
 
 # ---------------------------
 # resistance class outcome variables
 
 # get colsums for resistance genes; convert resistance outcomes to binary; write totals/binary totals to file
-resgenedf<-plasmiddf[,c('TotalResGenes',outcomeclasses)]
-resgenestotal<-as.data.frame(rev(sort(colSums(resgenedf))))
-# total resistance genes by class
-colnames(resgenestotal)<-'Total resistance genes by class'
-write.table(resgenestotal,file='output_exploratory/resgenestotalbyclass.tsv',sep='\t',col.names = TRUE,row.names = TRUE)
-# binary totals (i.e. per-plasmid presence/absence) of resistance genes by class
-resgenedfbinary<-resgenedf
-resgenedfbinary[resgenedfbinary>0]<-1
-resgenestotalplasmids<-as.data.frame(rev(sort(colSums(resgenedfbinary))))
-colnames(resgenestotalplasmids)<-'Total plasmids with a resistance gene by class'
-write.table(resgenestotalplasmids,file='output_exploratory/resgenestotalplasmidsbyclass.tsv',sep='\t',col.names = TRUE,row.names = TRUE)
-
+resgene_data <- get_resgene_data(plasmiddf, outcomeclasses)
+write.table(resgene_data$total_genes,file='output_exploratory/resgenestotalbyclass.tsv',sep='\t',col.names = TRUE,row.names = TRUE)
+write.table(resgene_data$total_plasmids,file='output_exploratory/resgenestotalplasmidsbyclass.tsv',sep='\t',col.names = TRUE,row.names = TRUE)
 
 # plot resistance class interaction heatmap (coloured by proportion of total class)
-orderoutcomeclasses<-match(rownames(resgenestotalplasmids),outcomeclasses)
+orderoutcomeclasses<-match(rownames(resgene_data$total_plasmids),outcomeclasses)
 orderoutcomeclasses<-orderoutcomeclasses[!is.na(orderoutcomeclasses)]
-#resgeneclasseshm<-resclassheatmap(resgenedfbinary,outcomeclasses[orderoutcomeclasses],twoway=TRUE)
-resgeneclasseshm<-resclassheatmap(resgenedfbinary,outcomeclasses,twoway=TRUE)
-pdf('output_exploratory/resgeneclasseshm.pdf')
-resgeneclasseshm
-dev.off()
+for (arg in c('counts', 'prop')) {
+  resgeneclasseshm_byfreq<-resclassheatmap(resgene_data$resgenedfbinary,outcomeclasses[orderoutcomeclasses],twoway=TRUE,hmtype=arg)
+  resgeneclasseshm<-resclassheatmap(resgene_data$resgenedfbinary,outcomeclasses,twoway=TRUE,hmtype=arg)
+  pdf(gsub('%s', arg, 'output_exploratory/resgeneclasseshm_%s_byfreq.pdf'))
+  plot(resgeneclasseshm_byfreq)
+  dev.off()
+  pdf(gsub('%s', arg, 'output_exploratory/resgeneclasseshm_%s.pdf'))
+  plot(resgeneclasseshm)
+  dev.off()
+}
+
+# as above but for recent set of plasmids (collection date >=2016)
+plasmidf_recent <- plasmiddf %>% mutate(CollectionDate = str_split(CollectionDate, pattern ='-', simplify = TRUE)[,1]) %>% filter(CollectionDate != "-" & CollectionDate != "") %>% mutate(CollectionDate = as.numeric(CollectionDate)) %>% filter(CollectionDate >= 2016)
+resgene_data_recent <- get_resgene_data(plasmidf_recent, outcomeclasses)
+
+orderoutcomeclasses<-match(rownames(resgene_data_recent$total_plasmids),outcomeclasses)
+orderoutcomeclasses<-orderoutcomeclasses[!is.na(orderoutcomeclasses)]
+for (arg in c('counts', 'prop')) {
+  resgeneclasseshm_byfreq<-resclassheatmap(resgene_data_recent$resgenedfbinary,outcomeclasses[orderoutcomeclasses],twoway=TRUE,hmtype=arg)
+  resgeneclasseshm<-resclassheatmap(resgene_data_recent$resgenedfbinary,outcomeclasses,twoway=TRUE,hmtype=arg)
+  pdf(gsub('%s', arg, 'output_exploratory/resgeneclasseshm_%s_byfreq_recent.pdf'))
+  plot(resgeneclasseshm_byfreq)
+  dev.off()
+  pdf(gsub('%s', arg, 'output_exploratory/resgeneclasseshm_%s_recent.pdf'))
+  plot(resgeneclasseshm)
+  dev.off()
+}
 
 
 # ---------------------------
@@ -66,6 +79,24 @@ pdf('output_exploratory/CollectionDate_CreateDate_scatter.pdf',5,5)
 print(sp)
 dev.off()
 
+# replot scatter plot of collection date vs createdate for data with more recent collection dates; most createdates are post 2000 - what is correlation for collection dates post 2000
+colcreatedatedf <- colcreatedatedf %>% filter(CollectionDate > 2000)
+colcreatepearson=round(cor(colcreatedatedf$CollectionDate,colcreatedatedf$CreateDate,method='pearson'),3)
+sp<-ggplot(colcreatedatedf, aes(x=CollectionDate, y=CreateDate))
+sp<-sp + stat_bin2d(bins=20)
+spdat<-ggplot_build(sp)
+spdat<-spdat[[1]][[1]][,'count']
+sp<-sp + scale_fill_gradient(low="lightblue", high="red", limits=c(0, max(spdat))) + 
+  ggtitle(gsubfn('%1|%2',list('%1'=colcreatepearson,'%2'=nrow(colcreatedatedf)),"Pearson's correlation (r)=%1; n=%2")) + theme_bw() +
+  theme(plot.title = element_text(size=10),panel.grid.major = element_blank(),panel.grid.minor = element_blank()) + xlab('Collection Date') + ylab('Create Date') + scale_x_continuous(limits=c(2000,2020),breaks=c(2000,2004,2008,2012,2016,2020)) + scale_y_continuous(limits=c(2000,2020), breaks=c(2000,2004,2008,2012,2016,2020))
+
+pdf('output_exploratory/CollectionDate_CreateDate_scatter_CollectionDate_post2000.pdf',5,5)
+print(sp)
+dev.off()
+
+
+CollectionDate_Original <- CollectionDate
+CollectionDate_Imputed <- CollectionDateImputed
 CollectionDate<-CollectionDateImputed  # re-assign imputed collection date as CollectionDate
 
 
@@ -95,7 +126,7 @@ conj[conj==0]<-"non-mobilisable"
 ConjugativeSystem<-factor(conj, ordered = FALSE,levels = c("non-mobilisable", "mobilisable", "conjugative"))
 
 
-# country coding: include frequent countries (US, mainland China) and EU as categories; and include "Regions as defined in the World Bank Development Indicators":
+# country coding: include frequent countries (US, mainland China) and EU [EU28 = EU & UK] as categories; and include "Regions as defined in the World Bank Development Indicators":
 # WB_HI (labelled high-income) and WB_LMI/WB_UMI (labelled middle-income); all others categorised as 'other'
 countries<-plasmiddf$Country
 countries[(grepl(glob2rx("R*union") , countries))]<-'Reunion'  # handle Reunion corrupted accent
@@ -179,7 +210,7 @@ for (i in 1:nrow(countryregiondf)) {
     geographies[i]<-country
   }
   else if (eucountry=='EU') {
-    geographies[i]<-'EU'
+    geographies[i]<-'EU & UK'  # eu28
   }
   else {
     if (income=='WB_LI') {
@@ -205,7 +236,7 @@ for (i in 1:nrow(countryregiondf)) {
   }
 }
 
-GeographicLocation<-factor(geographies, ordered = FALSE,levels = c("high-income", "middle-income", "China", "United States", "EU", "other"))
+GeographicLocation<-factor(geographies, ordered = FALSE,levels = c("high-income", "middle-income", "China", "United States", "EU & UK", "other"))
 
 #> WB_UMI_count
 #[1] 593
@@ -253,6 +284,24 @@ IsolationSource<-factor(isolationsources, ordered = FALSE,levels = c("human", "l
 sapply(list(other_missing, other_uncategorised, other_agriculture), length)  # 4317 5541  623
 
 
+# replicon type / replicon family exploratory analysis using Cleveland dotplot
+reptypedf <- as.data.frame(rev(sort(table(plasmiddf$RepliconType)))) %>% rename(RepliconType = Var1) %>% mutate(RepliconType = as.character(RepliconType))
+reptypedf %>% filter(RepliconType != '-') %>% nrow()  # 555 replicon type combinations
+
+repfamilydf <- as.data.frame(rev(sort(table(plasmiddf$RepliconFamily)))) %>% rename(RepliconFamily = Var1) %>% mutate(RepliconFamily = as.character(RepliconFamily))
+repfamilydf %>% filter(RepliconFamily != '-') %>% nrow()  # 231 replicon family type combinations
+repfamilydf_filtered <- repfamilydf %>% filter(Freq >= 10) %>% arrange(Freq)
+repfamilydf_other <- repfamilydf %>% filter(Freq < 10) %>% summarise(RepliconFamily = 'Other', Freq = sum(Freq))  # 376
+repfamilydf_final <- do.call(rbind, list(repfamilydf_other, repfamilydf_filtered)) %>% filter(RepliconFamily != '-')
+repfamilydf_final$RepliconFamily <- factor(repfamilydf_final$RepliconFamily, levels = unique(repfamilydf_final$RepliconFamily))
+
+p_cleveland <- ggplot(repfamilydf_final, aes(x = RepliconFamily, y = Freq)) + geom_point(size = 3) + theme_bw() + coord_flip() + labs(x = "Plasmid replicon family haplotype", y = "Frequency") +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.y = element_line(colour = "grey60", linetype = "dashed"))
+pdf('output_exploratory/replicontype_cleveland.pdf', 6, 8)
+p_cleveland
+dev.off()
 
 # replicon carriage: untyped/single/multi-replicon type carriage
 reptypes<-vector()
@@ -320,10 +369,10 @@ NumOtherResistanceClasseslist<-vector('list',length(outcomeclasses))
 for (i in 1:length(outcomeclasses)) {
   #outcome
   outcomeclass<-outcomeclasses[i]
-  outcomeclassbinary<-as.factor(resgenedfbinary[,outcomeclass])
+  outcomeclassbinary<-as.factor(resgene_data$resgenedfbinary[,outcomeclass])
   outcomeclasseslist[[i]]<-outcomeclassbinary
   #number of other resistance gene classes (for a given outcome class)
-  otherresgenedf<-resgenedf[,-which(colnames(resgenedf) %in% c('TotalResGenes',outcomeclass))]
+  otherresgenedf<-resgene_data$resgenedf[,-which(colnames(resgene_data$resgenedf) %in% c('TotalResGenes',outcomeclass))]
   otherresgenedf[otherresgenedf>1]<-1
   NumOtherResistanceClasses<-rowSums(otherresgenedf)
   NumOtherResistanceClasseslist[[i]]<-NumOtherResistanceClasses
@@ -337,7 +386,7 @@ colnames(NumOtherResistanceClasseslistdf)<-paste('NumOtherResistanceClasses',out
 # create final dataframe of explanatory and outcome variables
 Accession<-plasmiddf$Accession
 log10PlasmidSize<-log10(PlasmidSize)  # this will be over-written after data transformation
-finaldf<-data.frame(Accession,PlasmidSize,log10PlasmidSize,CollectionDate,NumInsertionSequences,InsertionSequenceDensity,BiocideMetalResistance,Virulence,Integron,ConjugativeSystem,GeographicLocation,IsolationSource,RepliconCarriage,HostTaxonomy)
+finaldf<-data.frame(Accession,PlasmidSize,log10PlasmidSize,CollectionDate,CollectionDate_Original,CollectionDate_Imputed,NumInsertionSequences,InsertionSequenceDensity,BiocideMetalResistance,Virulence,Integron,ConjugativeSystem,GeographicLocation,IsolationSource,RepliconCarriage,HostTaxonomy)
 finaldf<-cbind(finaldf,outcomeclasseslistdf,NumOtherResistanceClasseslistdf)
 
 # check if any values are NA
@@ -394,7 +443,7 @@ finaldftrunc$CollectionDate<-finaldftrunc$CollectionDate-round(as.numeric(Collec
 finaldftrunc$log10PlasmidSize<-finaldftrunc$log10PlasmidSize - 4
 
 # write to file
-write.table(finaldftrunc,'data/plasmiddf_transformed.tsv',col.names=TRUE,row.names=FALSE,sep='\t',quote=FALSE)  # this file is Data_2I
+write.table(finaldftrunc,'data/plasmiddf_transformed.tsv',col.names=TRUE,row.names=FALSE,sep='\t',quote=FALSE)  # this file is Data_S1J
 
 # write truncation thresholds to file
 trunccutofffilename<-'data/truncationcutoffs.tsv'
