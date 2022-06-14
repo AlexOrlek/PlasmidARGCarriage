@@ -28,7 +28,7 @@ finaldftrunc$`Conjugative system`<-factor(finaldftrunc$`Conjugative system`,leve
 levels(finaldftrunc$`Replicon carriage`)<-c('Multi-replicon','Single-replicon','Untyped')
 finaldftrunc$`Replicon carriage`<-factor(finaldftrunc$`Replicon carriage`,levels=c('Untyped','Single-replicon','Multi-replicon'))
 
-levels(finaldftrunc$`Host taxonomy`)<-c('Enterobacteriaceae','Firmicutes','Proteobacteria (non-Enterobacteriaceae)','Other')
+levels(finaldftrunc$`Host taxonomy`)<-c('Enterobacteriaceae','Firmicutes','Other','Proteobacteria (non-Enterobacteriaceae)')
 finaldftrunc$`Host taxonomy`<-factor(finaldftrunc$`Host taxonomy`,levels=c('Enterobacteriaceae','Proteobacteria (non-Enterobacteriaceae)','Firmicutes','Other'))
 
 levels(finaldftrunc$`Geographic location`)<-c('China','EU & UK','High-income','Middle-income','Other','United States')

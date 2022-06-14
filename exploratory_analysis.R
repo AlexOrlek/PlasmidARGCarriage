@@ -349,8 +349,8 @@ for (i in 1:nrow(plasmiddf)) {
 }
 
 
-taxa[taxa=='Proteobacteria']<-'non-Enterobacteriaceae Proteobacteria'
-HostTaxonomy<-factor(taxa, ordered = FALSE,levels = c("Enterobacteriaceae", "non-Enterobacteriaceae Proteobacteria", "Firmicutes","other"))
+taxa[taxa=='Proteobacteria']<-'Proteobacteria_other'
+HostTaxonomy<-factor(taxa, ordered = FALSE,levels = c("Enterobacteriaceae", "Proteobacteria_other", "Firmicutes","other"))
 
 # explore breakdown of 'other' category
 sapply(list(other_missing, other_uncategorised), length)  # 0 2219  # Note there were no rows where all where missing since uncultured bacterium is given as species where other taxonomic info is unknown
@@ -447,7 +447,7 @@ finaldftrunc$CollectionDate<-finaldftrunc$CollectionDate-round(as.numeric(Collec
 # express log10PlasmidSize as log10PlasmidSize - 4 (i.e. centred on 10kb since 0kb is not meaningful)
 finaldftrunc$log10PlasmidSize<-finaldftrunc$log10PlasmidSize - 4
 
-# write to file, after re-coding binary variables to absence/presence
+# write to file
 write.table(finaldftrunc,'data/plasmiddf_transformed.tsv',col.names=TRUE,row.names=FALSE,sep='\t',quote=FALSE)  # this file is Data_S1J
 
 # write truncation thresholds to file
