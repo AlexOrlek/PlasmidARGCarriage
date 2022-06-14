@@ -1,10 +1,10 @@
 # Background
 
-Code for paper: "Biological and abiotic factors associated with plasmid antibiotic resistance gene carriage: a multivariate analysis using publicly available data".<br>
+Code for paper: "Risk factors associated with plasmid antibiotic resistance gene carriage revealed using large-scale multivariable analysis".<br>
 
-Code runs statistical analysis of associated factors of plasmid antibiotic resistance gene carriage: 1) exploratory analysis; 2) unadajusted analysis; 3) adjusted analysis.<br>
+Code runs statistical analysis of associated factors of plasmid antibiotic resistance gene (ARG) carriage: 1) exploratory analysis; 2) unadjusted analysis; 3) adjusted analysis.<br>
 
-Separate logistic GAM models are constructed for 10 major resistance (sub)class outcomes.<br>
+Separate logistic GAM models are constructed for 10 major ARG type outcomes.<br>
 <br>
 
 # Instructions for running code
