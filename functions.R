@@ -3,6 +3,22 @@ pacman::p_load(ggplot2, reshape2)
 # ---------------------------
 # exploratory analysis functions
 
+# calculate antibiotic resistance gene totals at gene and plasmid level
+get_resgene_data <- function(plasmiddf, outcomeclasses) {
+  resgenedf<-plasmiddf[,c('TotalResGenes',outcomeclasses)]
+  genestotal<-as.data.frame(rev(sort(colSums(resgenedf))))
+  # total resistance genes by class
+  colnames(genestotal)<-'Total resistance genes by class'
+  # binary totals (i.e. per-plasmid presence/absence) of resistance genes by class
+  resgenedfbinary<-resgenedf
+  resgenedfbinary[resgenedfbinary>0]<-1
+  plasmidstotal<-as.data.frame(rev(sort(colSums(resgenedfbinary))))
+  colnames(plasmidstotal)<-'Total plasmids with a resistance gene by class'
+  resgene_data<-list(genestotal, plasmidstotal, resgenedf, resgenedfbinary)
+  names(resgene_data)<-c('total_genes', 'total_plasmids', 'resgenedf', 'resgenedfbinary')
+  return(resgene_data)
+}
+
 # cross-tabulate categorical variables
 crosstabulate<-function(outcomeclass,factorvar) {
   outcomeclassbinary<-finaldf[,gsub('%s',outcomeclass,'outcome%s')]
@@ -20,7 +36,7 @@ crosstabulate<-function(outcomeclass,factorvar) {
 # heatmap of resistance gene class intersections
 #http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization #used correlation heat map code
 #https://stackoverflow.com/questions/34659782/creation-of-a-contingency-table-based-on-two-columns-of-a-binary-matrix
-resclassheatmap<-function(mymatrixinput,resclasses,twoway=TRUE,onewayplotlower=TRUE,hmtext='counts') {
+resclassheatmap<-function(mymatrixinput,resclasses,twoway=TRUE,onewayplotlower=TRUE,hmtype='counts',hmtitle='') {
   # convert binary matrix to proportions
   resgenedfbinarymat<-t(apply(mymatrixinput[,resclasses], 2, function(x) apply(mymatrixinput[,resclasses], 2, function(y) sum(x==1 & y ==1))))
   if (twoway==TRUE) {
@@ -38,23 +54,23 @@ resclassheatmap<-function(mymatrixinput,resclasses,twoway=TRUE,onewayplotlower=T
   # convert matrix to long dataframe  
   melted_hm <- reshape2::melt(mypropmatrix, na.rm = TRUE)
   # plot heatmap
-  if (hmtext=='counts') {
+  if (hmtype=='counts') {
     mygeomtext<-as.character(resgenedfbinarymat)
     mygeomtext[mygeomtext=='0']<-''
     #add totals to diagonal
     mygeomtext[seq(1,length(mygeomtext),nrow(resgenedfbinarymat)+1)]<-colSums(mymatrixinput[,resclasses])
     # plot
     ggplot(data = melted_hm, aes(Var2, Var1, fill = value)) + geom_tile(color = "white") +
-      scale_fill_gradientn(colours=c("white", "light blue", "red"), limit = c(0,max(mypropmatrix)), space = "Lab", name="Proportion") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),plot.title = element_text(size=11)) + coord_fixed() +ylab("") + xlab("") + geom_text(aes(label = mygeomtext)) + ggtitle('Resistance class intersect heatmap (counts indicated)')
+      scale_fill_gradientn(colours=c("white", "light blue", "red"), limit = c(0,max(mypropmatrix)), space = "Lab", name="Proportion") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),plot.title = element_text(size=11)) + coord_fixed() +ylab("") + xlab("") + geom_text(aes(label = mygeomtext)) + ggtitle(hmtitle)
   }
-  else if (hmtext=='prop') {
+  else if (hmtype=='prop') {
     mygeomtext<-as.character(round(mypropmatrix,2))
     mygeomtext[mygeomtext=='0']<-''
     ggplot(data = melted_hm, aes(Var2, Var1, fill = value)) + geom_tile(color = "white") +
-      scale_fill_gradientn(colours=c("white", "light blue", "red"), limit = c(0,max(mypropmatrix)), space = "Lab", name="Proportion") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),plot.title = element_text(size=11)) + coord_fixed() +ylab("") + xlab("") + geom_text(aes(label = mygeomtext)) + ggtitle('Resistance class intersect heatmap')
+      scale_fill_gradientn(colours=c("white", "light blue", "red"), limit = c(0,max(mypropmatrix)), space = "Lab", name="Proportion") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),plot.title = element_text(size=11)) + coord_fixed() +ylab("") + xlab("") + geom_text(aes(label = mygeomtext)) + ggtitle(hmtitle)
   }
   else {
-    print('hmtext type unrecognised')
+    print('hmtype unrecognised')
   }
 }
 
