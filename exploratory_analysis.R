@@ -349,8 +349,8 @@ for (i in 1:nrow(plasmiddf)) {
 }
 
 
-taxa[taxa=='Proteobacteria']<-'Proteobacteria_other'  # (non-Enterobacteriaceae Proteobacteria)
-HostTaxonomy<-factor(taxa, ordered = FALSE,levels = c("Enterobacteriaceae", "Proteobacteria_other", "Firmicutes","other"))
+taxa[taxa=='Proteobacteria']<-'non-Enterobacteriaceae Proteobacteria'
+HostTaxonomy<-factor(taxa, ordered = FALSE,levels = c("Enterobacteriaceae", "non-Enterobacteriaceae Proteobacteria", "Firmicutes","other"))
 
 # explore breakdown of 'other' category
 sapply(list(other_missing, other_uncategorised), length)  # 0 2219  # Note there were no rows where all where missing since uncultured bacterium is given as species where other taxonomic info is unknown
@@ -389,12 +389,15 @@ log10PlasmidSize<-log10(PlasmidSize)  # this will be over-written after data tra
 finaldf<-data.frame(Accession,PlasmidSize,log10PlasmidSize,CollectionDate,CollectionDate_Original,CollectionDate_Imputed,NumInsertionSequences,InsertionSequenceDensity,BiocideMetalResistance,Virulence,Integron,ConjugativeSystem,GeographicLocation,IsolationSource,RepliconCarriage,HostTaxonomy)
 finaldf<-cbind(finaldf,outcomeclasseslistdf,NumOtherResistanceClasseslistdf)
 
-# check if any values are NA
+# check if any values in variables used for modelling are NA
 for (i in 1:ncol(finaldf)) {
-  if (any(is.na(finaldf[,i]))==TRUE)
-    print(colnames(finaldf)[i])
+  finaldfvar <- colnames(finaldf)[i]
+  if (finaldfvar == "CollectionDate_Original") {
+    next
+  }
+  if (any(is.na(finaldf[[finaldfvar]]))==TRUE)
+    print(finaldfvar)
 }
-
 
 # cross-tabulate categorical predictors and outcome variables (to ensure factor levels balance bias-variance trade-off and for later calcualtion of unadjusted odds ratios)
 factorvars<-c('BiocideMetalResistance','ConjugativeSystem','GeographicLocation','Integron','IsolationSource','RepliconCarriage','HostTaxonomy','Virulence')
@@ -403,11 +406,13 @@ crosstablelist<-list()
 for (outcomeclass in outcomeclasses) {
   for (factorvar in factorvars) {
     counter<-counter+1
-    crosstablelist[[counter]]<-crosstabulate(outcomeclass,factorvar)
+    crosstablelist[[counter]]<-crosstabulate(finaldf,outcomeclass,factorvar)
   }
 }
 
 crosstabledf<-as.data.frame(do.call(rbind,crosstablelist))
+crosstabledf<-crosstabledf %>% mutate(FactorLevel = recode_factor(FactorLevel, `0` = "absence", `1` = "presence"))
+
 write.table(crosstabledf,'output_exploratory/crosstabulation.tsv',col.names = TRUE,row.names = FALSE,sep='\t',quote=FALSE)
 
 
@@ -442,7 +447,7 @@ finaldftrunc$CollectionDate<-finaldftrunc$CollectionDate-round(as.numeric(Collec
 # express log10PlasmidSize as log10PlasmidSize - 4 (i.e. centred on 10kb since 0kb is not meaningful)
 finaldftrunc$log10PlasmidSize<-finaldftrunc$log10PlasmidSize - 4
 
-# write to file
+# write to file, after re-coding binary variables to absence/presence
 write.table(finaldftrunc,'data/plasmiddf_transformed.tsv',col.names=TRUE,row.names=FALSE,sep='\t',quote=FALSE)  # this file is Data_S1J
 
 # write truncation thresholds to file
@@ -462,17 +467,17 @@ for (outcomeclass in outcomeclasses) {
 # ---------------------------
 # With truncated dataset, flag potential issues with collinearity using association statistics
 print('exploring collinearity...')
-finaldftrunccopy<-finaldftrunc
+
 for (binaryvar in c('Integron','BiocideMetalResistance','Virulence')) {
-  finaldftrunccopy[,binaryvar]<-as.numeric(as.character(finaldftrunccopy[,binaryvar]))
+  finaldftrunc[,binaryvar]<-as.numeric(as.character(finaldftrunc[,binaryvar]))
 }
 
 # Matrix outputs: spearman's correlation; Kramer's V for association between categorical variables (0=no association; 1=perfect association); Kruskal-Wallis H test eta-squared statistic for association between continuoius and categorical
 
 # Numeric: log10PlasmidSize, NumInsertionSequences, InsertionSequenceDensity, NumOtherResistanceClasses, CollectionDate
 # Categorical:
-#    Binary: Integron, BiocideMetalResistance, Virulence
-#    Nominal: ConjugativeSystem, RepliconCarriage, HostTaxonomy, GeographicLocation, IsolationSource
+# Binary: Integron, BiocideMetalResistance, Virulence
+# Nominal: ConjugativeSystem, RepliconCarriage, HostTaxonomy, GeographicLocation, IsolationSource
 
 # Numeric-numeric (Spearman's correlation)
 # Generate vector of NumOtherResistanceClasses variable across outcomes

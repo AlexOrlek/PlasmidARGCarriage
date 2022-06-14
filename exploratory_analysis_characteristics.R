@@ -28,7 +28,7 @@ finaldftrunc$`Conjugative system`<-factor(finaldftrunc$`Conjugative system`,leve
 levels(finaldftrunc$`Replicon carriage`)<-c('Multi-replicon','Single-replicon','Untyped')
 finaldftrunc$`Replicon carriage`<-factor(finaldftrunc$`Replicon carriage`,levels=c('Untyped','Single-replicon','Multi-replicon'))
 
-levels(finaldftrunc$`Host taxonomy`)<-c('Enterobacteriaceae','Firmicutes','Other','Proteobacteria (non-Enterobacteriaceae)')
+levels(finaldftrunc$`Host taxonomy`)<-c('Enterobacteriaceae','Firmicutes','Proteobacteria (non-Enterobacteriaceae)','Other')
 finaldftrunc$`Host taxonomy`<-factor(finaldftrunc$`Host taxonomy`,levels=c('Enterobacteriaceae','Proteobacteria (non-Enterobacteriaceae)','Firmicutes','Other'))
 
 levels(finaldftrunc$`Geographic location`)<-c('China','EU & UK','High-income','Middle-income','Other','United States')
@@ -45,8 +45,8 @@ nrow(finaldftrunc_resistant)
 
 
 # output resistant plasmid data for microreact
-resdf<- rio::import(file = "data/Data_S2.xlsx", sheet='2G')
-plasmiddf<-read.table('data/Data_2H.tsv',header=TRUE,quote="'",sep='\t',as.is=TRUE)
+resdf<- rio::import(file = "data/Data_S1.xlsx", sheet='G')
+plasmiddf<-read.table('data/Data_S1H.tsv',header=TRUE,quote="'",sep='\t',as.is=TRUE)
 
 microreact_data <- finaldftrunc_resistant %>% left_join(plasmiddf, by = 'Accession') %>% left_join(resdf, by = 'Accession')
 microreact_data <- microreact_data %>% mutate(CollectionDate2 = CollectionDate) %>% separate(col = CollectionDate, into = c("year", "month", "day"), sep = "-", fill = "right") %>% rename(CollectionDate = CollectionDate2)
