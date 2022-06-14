@@ -1,4 +1,4 @@
-pacman::p_load(tidyverse,tableone)
+pacman::p_load(tidyverse, tableone, rio)
 
 # load data
 finaldftrunc<-read.table('data/plasmiddf_transformed.tsv',header=TRUE,sep='\t',stringsAsFactors = TRUE,quote = "",comment.char = "")
@@ -31,8 +31,8 @@ finaldftrunc$`Replicon carriage`<-factor(finaldftrunc$`Replicon carriage`,levels
 levels(finaldftrunc$`Host taxonomy`)<-c('Enterobacteriaceae','Firmicutes','Other','Proteobacteria (non-Enterobacteriaceae)')
 finaldftrunc$`Host taxonomy`<-factor(finaldftrunc$`Host taxonomy`,levels=c('Enterobacteriaceae','Proteobacteria (non-Enterobacteriaceae)','Firmicutes','Other'))
 
-levels(finaldftrunc$`Geographic location`)<-c('China','EU','High-income','Middle-income','Other','United States')
-finaldftrunc$`Geographic location`<-factor(finaldftrunc$`Geographic location`,levels=c('High-income','Middle-income','EU','China','United States','Other'))
+levels(finaldftrunc$`Geographic location`)<-c('China','EU & UK','High-income','Middle-income','Other','United States')
+finaldftrunc$`Geographic location`<-factor(finaldftrunc$`Geographic location`,levels=c('High-income','Middle-income','EU & UK','China','United States','Other'))
 
 levels(finaldftrunc$`Isolation source`)<-c('Human','Livestock','Other')
 finaldftrunc$`Isolation source`<-factor(finaldftrunc$`Isolation source`,levels=c('Human','Livestock','Other'))
@@ -41,7 +41,20 @@ finaldftrunc$`Isolation source`<-factor(finaldftrunc$`Isolation source`,levels=c
 # split data into resistant / non-resistant plasmids
 finaldftrunc_resistant <- finaldftrunc[finaldftrunc %>% select(starts_with('outcome')) %>% rowSums() > 0,]
 finaldftrunc_nonresistant <- finaldftrunc[finaldftrunc %>% select(starts_with('outcome')) %>% rowSums() == 0,]
-nrow(finaldftrunc_resistant)  # 3692
+nrow(finaldftrunc_resistant)
+
+
+# output resistant plasmid data for microreact
+resdf<- rio::import(file = "data/Data_S2.xlsx", sheet='2G')
+plasmiddf<-read.table('data/Data_2H.tsv',header=TRUE,quote="'",sep='\t',as.is=TRUE)
+
+microreact_data <- finaldftrunc_resistant %>% left_join(plasmiddf, by = 'Accession') %>% left_join(resdf, by = 'Accession')
+microreact_data <- microreact_data %>% mutate(CollectionDate2 = CollectionDate) %>% separate(col = CollectionDate, into = c("year", "month", "day"), sep = "-", fill = "right") %>% rename(CollectionDate = CollectionDate2)
+microreact_data <- microreact_data %>% mutate(LatitudeLongitude = ifelse(LatitudeLongitude == '-', '', LatitudeLongitude)) %>% separate(col = LatitudeLongitude, into = c("latitude", "longitude"), sep = ",") %>% mutate(latitude = str_replace_all(latitude, ' ', ''), longitude = str_replace_all(longitude, ' ', ''))
+
+microreact_data <- microreact_data %>% select(id = Accession, Description, CreateDate, SequenceLength, Phylum, Class, Order, Family, Genus, Species, BiosampleAccession, year, month, day, LocationDescription_uncurated, latitude, longitude, Country, IsolationSource__autocolour = IsolationSource_maincategories, BacMetGenes, NumBacMetGenes, VFDBgenes, NumVFDBgenes, MobType, ConjType, NumIntegron, NumIn0, NumCALIN, NumIS, RepliconType, RepliconFamily, ResistanceGenes, TotalResGenes, aminoglycoside, sulphonamide, tetracycline, phenicol, macrolide, trimethoprim, ESBL = betalactam_ESBL, carbapenem = betalactam_carbapenem, quinolone, colistin)  # problem also need to import resistance genes; try just joining pre-created microreact data
+
+write.table(microreact_data, file = 'data/microreact-data-ncbi-plasmid-antibiotic-resistance.tsv', sep = '\t', col.names = TRUE, row.names = FALSE, na = "")
 
 
 # summarise variable characteristics
