@@ -6,11 +6,10 @@ theme_set(theme_bw())
 # ---------------------------
 # compare adjusted vs unadjusted models
 unadjusteddf<-read.table('output_unadjusted/unadjustedodds.tsv',as.is = TRUE,sep='\t',header=TRUE)
-unadjusteddf$ResistanceClass <- unadjusteddf$ResistanceClass %>% recode(`TEM-1` = 'TEM.1')
 adjusteddf<-read.table('output_adjusted/mainmodel/adjustedodds.tsv',as.is = TRUE,sep='\t',header=TRUE)
 
-# remove 'baseline' rows from unadjusted
-unadjusteddf<-unadjusteddf[unadjusteddf$logOddsRatio!='baseline' | is.na(unadjusteddf$logOddsRatio),]
+# remove 'reference' rows from unadjusted
+unadjusteddf<-unadjusteddf[unadjusteddf$logOddsRatio!='reference' | is.na(unadjusteddf$logOddsRatio),]
 
 # re-order by factor level
 unadjusteddf<-unadjusteddf[order(unadjusteddf$FactorVariable),]
@@ -26,13 +25,15 @@ write.table(adjusteddf,file='output_adjusted/mainmodel/adjustedodds_vs_unadjuste
 # ---------------------------
 # compare adjusted alternative models vs 1) unadjusted; 2) adjusted (reference "mainmodel")
 
-alternativemodelnames<-c('mainmodel_minus_NumOtherResistanceClasses', 'mainmodel_minus_Integron', 'mainmodel_minus_BiocideMetalResistance', 'mainmodel_minus_RepliconCarriage', 'mainmodel_minus_HostTaxonomy', 'mainmodel_minus_log10PlasmidSize', 'mainmodel_minus_RepliconCarriage_NumOtherResistanceClasses', 'mainmodel_minus_BiocideMetalResistance_NumOtherResistanceClasses', 'mainmodel_minus_Integron_NumOtherResistanceClasses', 'mainmodel_minus_BiocideMetalResistance_Integron', 'mainmodel_minus_3associatedfactorsofConjugativeSystem','mainmodel_minus_6associatedfactorsofConjugativeSystem')
+alternativemodelnames<-c('minus_NumOtherResistanceClasses', 'minus_Integron', 'minus_BiocideMetalResistance', 'minus_RepliconCarriage', 'minus_HostTaxonomy', 'minus_log10PlasmidSize', 'minus_RepliconCarriage_NumOtherResistanceClasses', 'minus_BiocideMetalResistance_NumOtherResistanceClasses', 'minus_Integron_NumOtherResistanceClasses', 'minus_BiocideMetalResistance_Integron', 'minus_3associatedfactorsofConjugativeSystem','minus_6associatedfactorsofConjugativeSystem')
 removedparametricvariables<-list(NA,c('Integron'),c('BiocideMetalResistance'),c('RepliconCarriage'),c('HostTaxonomy'),NA,c('RepliconCarriage'),c('BiocideMetalResistance'),c('Integron'),c('BiocideMetalResistance','Integron'),c('HostTaxonomy'),c('HostTaxonomy','RepliconCarriage','Integron'))
 
 for (i in 1:length(alternativemodelnames)) {
   modelname<-alternativemodelnames[i]
   removedvars<-removedparametricvariables[[i]]
   print(modelname)
+  #create output directory
+  dir.create(file.path('output_adjusted',modelname,'parametric_comparison'), showWarnings = FALSE)
   #read adjusted output from alternative model
   adjusteddf_alternative<-read.table(gsub('%s',modelname,'output_adjusted/%s/adjustedodds.tsv'),as.is = TRUE,sep='\t',header=TRUE)
   #re-order by factor level
@@ -69,7 +70,7 @@ for (i in 1:length(alternativemodelnames)) {
 
 # ---------------------------
 # functions and parameters
-outcomeclasses<-c('aminoglycoside','phenicol','sulphonamide','tetracycline','macrolide','TEM.1','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
+outcomeclasses<-c('aminoglycoside','sulphonamide','tetracycline','phenicol','macrolide','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
 
 ncols<-3  # for faceted figures
 
@@ -113,10 +114,11 @@ setparameters<-function(outputname) {
 brewerpal1<-brewer.pal(8,'Set1')
 brewerpal<-c(brewerpal1,'#e0bb6d','#90EE90','#add8e6')
 brewerpal[6]<-'#ffd700'
+brewerpal<-brewerpal[1:length(outcomeclasses)]
 
 labelfunc<-function(x) {
   #relabels facet grid labels
-  x<-str_replace(x,'Proteobacteria_other', 'Proteobacteria (non-Enterobacteriaceae)')
+  x<-str_replace(x,'Proteobacteria_non-Enterobacteriaceae', 'Proteobacteria (non-Enterobacteriaceae)')
   return(x)
 }
 
@@ -126,7 +128,7 @@ labelfunc<-function(x) {
 
 # HostTaxonomy: alternative model with RepliconCarriage and NumOtherResistanceClasses removed
 myggtitle<-'Host taxonomy\nreference: Enterobacteriaceae'
-adjustedalternativedf<-read.table("output_adjusted/mainmodel_minus_RepliconCarriage_NumOtherResistanceClasses/adjustedodds_vs_mainmodel.tsv",sep='\t',header=TRUE,as.is=TRUE)
+adjustedalternativedf<-read.table("output_adjusted/minus_RepliconCarriage_NumOtherResistanceClasses/adjustedodds_vs_mainmodel.tsv",sep='\t',header=TRUE,as.is=TRUE)
 factorvardf<-adjustedalternativedf[adjustedalternativedf$FactorVariable=='HostTaxonomy',]
 factorvardf<-factorvardf[order(match(factorvardf$ResistanceClass,outcomeclasses)),]
 
@@ -141,7 +143,7 @@ factorvardflong<-do.call(rbind,lapply(factorvardflongsplit,recolourdf))
 
 
 # set factor levels
-factorvardflong$FactorLevel<-factor(factorvardflong$FactorLevel,levels=c('Enterobacteriaceae', 'Proteobacteria_other', 'Firmicutes','other'))
+factorvardflong$FactorLevel<-factor(factorvardflong$FactorLevel,levels=c('Enterobacteriaceae', 'Proteobacteria_non-Enterobacteriaceae', 'Firmicutes','other'))
 factorvardflong$model<-factor(factorvardflong$model,levels=c('logOddsRatio', 'logOddsRatio_mainmodel', 'logOddsRatio_unadjusted'))
 factorvardflong<-factorvardflong[order(factorvardflong$model), ]  # re-order dataframe based on model
 
@@ -154,14 +156,14 @@ p<-ggplot(factorvardflong,aes(x=ResistanceClass,y=logOddsRatio)) + geom_hline(yi
 p<-p + theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1,size=rel(1.3)),axis.text.y = element_text(size=rel(1.3)), strip.text.x = element_text(size=rel(1.3)), panel.grid.major=element_blank(), panel.grid.minor=element_blank(),axis.title.y = element_text(size=rel(1.3)), axis.title.x = element_blank(), plot.title = element_text(size=12)) + ylab('\nlog odds ratio (95% CI)') + ggtitle(myggtitle)
 p<-p + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(lowerlim,upperlim)) + scale_x_discrete(limits=outcomeclasses,labels=gsub('.','-',outcomeclasses,fixed=TRUE))
 
-pdf('output_adjusted/mainmodel_minus_RepliconCarriage_NumOtherResistanceClasses/coefficientplots/logoddsscale/HostTaxonomy_faceted_vs_mainmodel_vs_unadjusted.pdf',mywidth,myheight)
+pdf('output_adjusted/minus_RepliconCarriage_NumOtherResistanceClasses/parametric_comparison/HostTaxonomy_faceted_vs_mainmodel_vs_unadjusted.pdf',mywidth,myheight)
 p
 dev.off()
 
 
 # BiocideMetalResistance: alternative model with Integron and NumOtherResistanceClasses removed
 myggtitle<-'Biocide/metal resistance gene presence\nreference: absence'
-adjustedalternativedf<-read.table("output_adjusted/mainmodel_minus_Integron_NumOtherResistanceClasses/adjustedodds_vs_mainmodel.tsv",sep='\t',header=TRUE,as.is=TRUE)
+adjustedalternativedf<-read.table("output_adjusted/minus_Integron_NumOtherResistanceClasses/adjustedodds_vs_mainmodel.tsv",sep='\t',header=TRUE,as.is=TRUE)
 factorvardf<-adjustedalternativedf[adjustedalternativedf$FactorVariable=='BiocideMetalResistance',]
 factorvardf$FactorLevel<-'presence'
 factorvardf<-factorvardf[order(match(factorvardf$ResistanceClass,outcomeclasses)),]
@@ -189,14 +191,14 @@ p<-ggplot(factorvardflong,aes(x=ResistanceClass,y=logOddsRatio)) + geom_hline(yi
 p<-p + theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1,size=rel(1.3)),axis.text.y = element_text(size=rel(1.3)), strip.text.x = element_text(size=rel(1.3)), panel.grid.major=element_blank(), panel.grid.minor=element_blank(),axis.title.y = element_text(size=rel(1.3)), axis.title.x = element_blank(), plot.title = element_text(size=12)) + ylab('\nlog odds ratio (95% CI)') + ggtitle(myggtitle)
 p<-p + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(lowerlim,upperlim)) + scale_x_discrete(limits=outcomeclasses,labels=gsub('.','-',outcomeclasses,fixed=TRUE))
 
-pdf('output_adjusted/mainmodel_minus_Integron_NumOtherResistanceClasses/coefficientplots/logoddsscale/BiocideMetalResistance_faceted_vs_mainmodel_vs_unadjusted.pdf',mywidth,myheight)
+pdf('output_adjusted/minus_Integron_NumOtherResistanceClasses/parametric_comparison/BiocideMetalResistance_faceted_vs_mainmodel_vs_unadjusted.pdf',mywidth,myheight)
 p
 dev.off()
 
 
 # Integron: alternative model with BiocideMetalResistance and NumOtherResistanceClasses removed
 myggtitle<-'Integron presence\nreference: absence'
-adjustedalternativedf<-read.table("output_adjusted/mainmodel_minus_BiocideMetalResistance_NumOtherResistanceClasses/adjustedodds_vs_mainmodel.tsv",sep='\t',header=TRUE,as.is=TRUE)
+adjustedalternativedf<-read.table("output_adjusted/minus_BiocideMetalResistance_NumOtherResistanceClasses/adjustedodds_vs_mainmodel.tsv",sep='\t',header=TRUE,as.is=TRUE)
 factorvardf<-adjustedalternativedf[adjustedalternativedf$FactorVariable=='Integron',]
 factorvardf$FactorLevel<-'presence'
 factorvardf<-factorvardf[order(match(factorvardf$ResistanceClass,outcomeclasses)),]
@@ -224,14 +226,14 @@ p<-ggplot(factorvardflong,aes(x=ResistanceClass,y=logOddsRatio)) + geom_hline(yi
 p<-p + theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1,size=rel(1.3)),axis.text.y = element_text(size=rel(1.3)), strip.text.x = element_text(size=rel(1.3)), panel.grid.major=element_blank(), panel.grid.minor=element_blank(),axis.title.y = element_text(size=rel(1.3)), axis.title.x = element_blank(), plot.title = element_text(size=12)) + ylab('\nlog odds ratio (95% CI)') + ggtitle(myggtitle)
 p<-p + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(lowerlim,upperlim)) + scale_x_discrete(limits=outcomeclasses,labels=gsub('.','-',outcomeclasses,fixed=TRUE))
 
-pdf('output_adjusted/mainmodel_minus_BiocideMetalResistance_NumOtherResistanceClasses/coefficientplots/logoddsscale/Integron_faceted_vs_mainmodel_vs_unadjusted.pdf',mywidth,myheight)
+pdf('output_adjusted/minus_BiocideMetalResistance_NumOtherResistanceClasses/parametric_comparison/Integron_faceted_vs_mainmodel_vs_unadjusted.pdf',mywidth,myheight)
 p
 dev.off()
 
 
 # ConjugativeSystem: alternative model with log10PlasmidSize removed
 myggtitle<-'Conjugative system\nreference: non-mobilisable'
-adjustedalternativedf<-read.table("output_adjusted/mainmodel_minus_log10PlasmidSize/adjustedodds_vs_mainmodel.tsv",sep='\t',header=TRUE,as.is=TRUE)
+adjustedalternativedf<-read.table("output_adjusted/minus_log10PlasmidSize/adjustedodds_vs_mainmodel.tsv",sep='\t',header=TRUE,as.is=TRUE)
 factorvardf<-adjustedalternativedf[adjustedalternativedf$FactorVariable=='ConjugativeSystem',]
 factorvardf<-factorvardf[order(match(factorvardf$ResistanceClass,outcomeclasses)),]
 
@@ -258,14 +260,14 @@ p<-ggplot(factorvardflong,aes(x=ResistanceClass,y=logOddsRatio)) + geom_hline(yi
 p<-p + theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1,size=rel(1.3)),axis.text.y = element_text(size=rel(1.3)), strip.text.x = element_text(size=rel(1.3)), panel.grid.major=element_blank(), panel.grid.minor=element_blank(),axis.title.y = element_text(size=rel(1.3)), axis.title.x = element_blank(), plot.title = element_text(size=12)) + ylab('\nlog odds ratio (95% CI)') + ggtitle(myggtitle)
 p<-p + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(lowerlim,upperlim)) + scale_x_discrete(limits=outcomeclasses,labels=gsub('.','-',outcomeclasses,fixed=TRUE))
 
-pdf('output_adjusted/mainmodel_minus_log10PlasmidSize/coefficientplots/logoddsscale/ConjugativeSystem_faceted_vs_mainmodel_vs_unadjusted.pdf',mywidth,myheight)
+pdf('output_adjusted/minus_log10PlasmidSize/parametric_comparison/ConjugativeSystem_faceted_vs_mainmodel_vs_unadjusted.pdf',mywidth,myheight)
 p
 dev.off()
 
 
 # ConjugativeSystem: alternative model with 3 associated factors removed
 myggtitle<-'Conjugative system\nreference: non-mobilisable'
-adjustedalternativedf<-read.table("output_adjusted/mainmodel_minus_3associatedfactorsofConjugativeSystem/adjustedodds_vs_mainmodel.tsv",sep='\t',header=TRUE,as.is=TRUE)
+adjustedalternativedf<-read.table("output_adjusted/minus_3associatedfactorsofConjugativeSystem/adjustedodds_vs_mainmodel.tsv",sep='\t',header=TRUE,as.is=TRUE)
 factorvardf<-adjustedalternativedf[adjustedalternativedf$FactorVariable=='ConjugativeSystem',]
 factorvardf<-factorvardf[order(match(factorvardf$ResistanceClass,outcomeclasses)),]
 
@@ -292,14 +294,14 @@ p<-ggplot(factorvardflong,aes(x=ResistanceClass,y=logOddsRatio)) + geom_hline(yi
 p<-p + theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1,size=rel(1.3)),axis.text.y = element_text(size=rel(1.3)), strip.text.x = element_text(size=rel(1.3)), panel.grid.major=element_blank(), panel.grid.minor=element_blank(),axis.title.y = element_text(size=rel(1.3)), axis.title.x = element_blank(), plot.title = element_text(size=12)) + ylab('\nlog odds ratio (95% CI)') + ggtitle(myggtitle)
 p<-p + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(lowerlim,upperlim)) + scale_x_discrete(limits=outcomeclasses,labels=gsub('.','-',outcomeclasses,fixed=TRUE))
 
-pdf('output_adjusted/mainmodel_minus_3associatedfactorsofConjugativeSystem/coefficientplots/logoddsscale/ConjugativeSystem_faceted_vs_mainmodel_vs_unadjusted.pdf',mywidth,myheight)
+pdf('output_adjusted/minus_3associatedfactorsofConjugativeSystem/parametric_comparison/ConjugativeSystem_faceted_vs_mainmodel_vs_unadjusted.pdf',mywidth,myheight)
 p
 dev.off()
 
 
 # ConjugativeSystem: alternative model with 6 associated factors removed
 myggtitle<-'Conjugative system\nreference: non-mobilisable'
-adjustedalternativedf<-read.table("output_adjusted/mainmodel_minus_6associatedfactorsofConjugativeSystem/adjustedodds_vs_mainmodel.tsv",sep='\t',header=TRUE,as.is=TRUE)
+adjustedalternativedf<-read.table("output_adjusted/minus_6associatedfactorsofConjugativeSystem/adjustedodds_vs_mainmodel.tsv",sep='\t',header=TRUE,as.is=TRUE)
 factorvardf<-adjustedalternativedf[adjustedalternativedf$FactorVariable=='ConjugativeSystem',]
 factorvardf<-factorvardf[order(match(factorvardf$ResistanceClass,outcomeclasses)),]
 
@@ -326,7 +328,7 @@ p<-ggplot(factorvardflong,aes(x=ResistanceClass,y=logOddsRatio)) + geom_hline(yi
 p<-p + theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1,size=rel(1.3)),axis.text.y = element_text(size=rel(1.3)), strip.text.x = element_text(size=rel(1.3)), panel.grid.major=element_blank(), panel.grid.minor=element_blank(),axis.title.y = element_text(size=rel(1.3)), axis.title.x = element_blank(), plot.title = element_text(size=12)) + ylab('\nlog odds ratio (95% CI)') + ggtitle(myggtitle)
 p<-p + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(lowerlim,upperlim)) + scale_x_discrete(limits=outcomeclasses,labels=gsub('.','-',outcomeclasses,fixed=TRUE))
 
-pdf('output_adjusted/mainmodel_minus_6associatedfactorsofConjugativeSystem/coefficientplots/logoddsscale/ConjugativeSystem_faceted_vs_mainmodel_vs_unadjusted.pdf',mywidth,myheight)
+pdf('output_adjusted/minus_6associatedfactorsofConjugativeSystem/parametric_comparison/ConjugativeSystem_faceted_vs_mainmodel_vs_unadjusted.pdf',mywidth,myheight)
 p
 dev.off()
 

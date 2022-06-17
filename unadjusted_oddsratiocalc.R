@@ -24,17 +24,17 @@ for (i in 1:length(resclasses)) {
       if (r==1) {
         baselinenonresistance<-resvardata[r,'Count_NonResistancePlasmids']
         baselineresistance<-resvardata[r,'Count_ResistancePlasmids']
-        ors<-c(ors,'baseline')
-        lowercis<-c(lowercis,'baseline')
-        uppercis<-c(uppercis,'baseline')
-        pvalueschi<-c(pvalueschi,'baseline')
-        pvaluesfisher<-c(pvaluesfisher,'baseline')
-        logors<-c(logors,'baseline')
-        loglowercis<-c(loglowercis,'baseline')
-        loguppercis<-c(loguppercis,'baseline')
-        probors<-c(probors,'baseline')
-        problowercis<-c(problowercis,'baseline')
-        probuppercis<-c(probuppercis,'baseline')
+        ors<-c(ors,'reference')
+        lowercis<-c(lowercis,'reference')
+        uppercis<-c(uppercis,'reference')
+        pvalueschi<-c(pvalueschi,'reference')
+        pvaluesfisher<-c(pvaluesfisher,'reference')
+        logors<-c(logors,'reference')
+        loglowercis<-c(loglowercis,'reference')
+        loguppercis<-c(loguppercis,'reference')
+        probors<-c(probors,'reference')
+        problowercis<-c(problowercis,'reference')
+        probuppercis<-c(probuppercis,'reference')
       } else {
         exposednonresistance<-resvardata[r,'Count_NonResistancePlasmids']
         exposedresistance<-resvardata[r,'Count_ResistancePlasmids']
@@ -87,11 +87,6 @@ oddsdf$ProbabilityScaleLower95CI<-problowercis
 oddsdf$ProbabilityScaleUpper95CI<-probuppercis
 oddsdf$`p-valueChi`<-pvalueschi
 oddsdf$`p-valueFisher`<-pvaluesfisher
-
-# re-order factor levels
-geographiesdf<-oddsdf[oddsdf$FactorVariable=='GeographicLocation',]
-geographiesdf<-do.call(rbind,lapply(split(geographiesdf,geographiesdf$ResistanceClass),function(x) x[match(c("high-income","middle-income","EU","China","United States","other"),x$FactorLevel),]))
-oddsdf[oddsdf$FactorVariable=='GeographicLocation',]<-geographiesdf
 
 # sort by outcome class
 oddsdf <- oddsdf[order(oddsdf$ResistanceClass,oddsdf$FactorVariable),]

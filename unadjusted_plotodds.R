@@ -2,7 +2,7 @@ pacman::p_load(tidyverse,scales,RColorBrewer,rwantshue)
 theme_set(theme_bw())
 
 oddsdf<-read.table('output_unadjusted/unadjustedodds.tsv',as.is = TRUE,sep='\t',header=TRUE)
-baselineindices<-oddsdf$OddsRatio=='baseline'
+baselineindices<-oddsdf$OddsRatio=='reference'
 baselineindices[is.na(baselineindices)]<-FALSE
 oddsdf<-oddsdf[!baselineindices,]
 oddsdf$logOddsRatio<-as.numeric(oddsdf$logOddsRatio)
@@ -15,7 +15,7 @@ brewerpal<-c(brewerpal1,'#e0bb6d','#90EE90','#add8e6')
 brewerpal[6]<-'#ffd700'
 #plot(1:11,1:11,col=brewerpal,pch=16,cex=6)
 
-if (length(resclasses)!=11) {
+if (length(resclasses)>11) {
   scheme <- iwanthue(seed = 42, force_init = TRUE)
   brewerpal <- scheme$hex(length(resclasses))
 }
@@ -25,10 +25,10 @@ if (length(resclasses)!=11) {
 oddsdfsplit<-split(oddsdf,oddsdf$FactorVariable)
 
 outputnames<-c('Integron','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
-ggtitles<-c('Integron presence\nbaseline: absence','Biocide/metal resistance gene presence\nbaseline: absence','Conjugative system\nbaseline: non-mobilisable','Replicon type carriage\nbaseline: untyped','Host taxonomy\nbaseline: Enterobacteriaceae','Virulence gene presence\nbaseline: absence','Geographic location\nbaseline: high-income','Isolation source\nbaseline: human')
-factorlevels<-list(c('1'),c('1'),c('mobilisable','conjugative'),c('single-replicon','multi-replicon'),c("Proteobacteria_other", "Firmicutes","other"),c('1'),c("China", "United States", "other","middle-income", "EU"),c("livestock","other"))
-factorlabels<-list(c('presence'),c('presence'),c('mobilisable','conjugative'),c('single-replicon','multi-replicon'),c("Proteobacteria (non-Enterobacteriaceae)", "Firmicutes","other"),c('presence'),c("China", "United States", "other","middle-income", "EU"),c("livestock","other"))
-outcomeclasses<-c('aminoglycoside','phenicol','sulphonamide','tetracycline','macrolide','TEM-1','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
+ggtitles<-c('Integron presence\nreference: absence','Biocide/metal resistance gene presence\nreference: absence','Conjugative system\nreference: non-mobilisable','Replicon type carriage\nreference: untyped','Host taxonomy\nreference: Enterobacteriaceae','Virulence gene presence\nreference: absence','Geographic location\nreference: high-income','Isolation source\nreference: human')
+factorlevels<-list(c('presence'),c('presence'),c('mobilisable','conjugative'),c('single-replicon','multi-replicon'),c("Proteobacteria_non-Enterobacteriaceae", "Firmicutes","other"),c('presence'),c("China", "United States", "other","middle-income", "EU & UK"),c("livestock","other"))
+factorlabels<-list(c('presence'),c('presence'),c('mobilisable','conjugative'),c('single-replicon','multi-replicon'),c("Proteobacteria (non-Enterobacteriaceae)", "Firmicutes","other"),c('presence'),c("China", "United States", "other","middle-income", "EU & UK"),c("livestock","other"))
+outcomeclasses<-c('aminoglycoside','sulphonamide','tetracycline','phenicol','macrolide','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
 
 numpanels<-c(1,1,2,2,3,1,5,2)
 numcols=3

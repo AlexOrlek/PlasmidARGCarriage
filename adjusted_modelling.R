@@ -1,20 +1,25 @@
-pacman::p_load(mgcv, mgcv.helper, RColorBrewer, mgcViz, scales, grid, cowplot, devtools, gsubfn, stringr)
+pacman::p_load(tidyverse, mgcv, mgcv.helper, RColorBrewer, mgcViz, scales, grid, cowplot, devtools, gsubfn, stringr)
 set.seed(42)
+source('functions.R')
 
 finaldftrunc<-read.table('data/plasmiddf_transformed.tsv',header=TRUE,sep='\t',stringsAsFactors = TRUE,quote = "",comment.char = "")
+finaldftrunc<-finaldftrunc %>% mutate(BiocideMetalResistance = recode(BiocideMetalResistance, `0` = 'absence', `1` = 'presence')) %>%
+                 mutate(Virulence = recode(Virulence, `0` = 'absence', `1` = 'presence')) %>% 
+                 mutate(Integron = recode(Integron, `0` = 'absence', `1` = 'presence'))
 
 # ---------------------------
 # set parameters
-outcomeclasses<-c('aminoglycoside','phenicol','sulphonamide','tetracycline','macrolide','TEM.1','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
+outcomeclasses<-c('aminoglycoside','sulphonamide','tetracycline','phenicol','macrolide','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
 
 args = commandArgs(trailingOnly=TRUE)
 modelname<-args[1]
 #modelname<-'mainmodel'
-#modelname<-'mainmodel_minus_NumOtherResistanceClasses'
-#modelname<-'mainmodel_minus_Integron'
-#modelname<-'mainmodel_minus_BiocideMetalResistance'
-#modelname<-'mainmodel_minus_RepliconCarriage'
-#modelname<-'mainmodel_minus_HostTaxonomy'
+#modelname<-'minus_NumOtherResistanceClasses'
+#modelname<-'minus_Integron'
+#modelname<-'minus_BiocideMetalResistance'
+#modelname<-'minus_RepliconCarriage'
+#modelname<-'minus_HostTaxonomy'
+#modelname<-'mainmodel_NonImputedCollectionDates'
 
 # create output directories
 dir.create(file.path('output_adjusted',modelname), showWarnings = FALSE)
@@ -26,49 +31,49 @@ dir.create(file.path(gsub('%s',modelname,'output_adjusted/%s/coefficientplots'),
 dir.create(file.path(gsub('%s',modelname,'output_adjusted/%s/coefficientplots/plotgam'), 'logoddsscale'), showWarnings = FALSE)
 dir.create(file.path(gsub('%s',modelname,'output_adjusted/%s/coefficientplots/plotgam'), 'probscale'), showWarnings = FALSE)
 
-if (modelname=='mainmodel') {
+if (modelname=='mainmodel' || modelname == 'mainmodel_NonImputedCollectionDates') {
   
   #main model
   outputnames_subset<-c('log10PlasmidSize','InsertionSequenceDensity','NumOtherResistanceClasses','CollectionDate','Integron','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(NumOtherResistanceClasses,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
   
   #models with single terms removed
-} else if (modelname=='mainmodel_minus_NumOtherResistanceClasses') {
+} else if (modelname=='minus_NumOtherResistanceClasses') {
   outputnames_subset<-c('log10PlasmidSize','InsertionSequenceDensity','CollectionDate','Integron','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
-} else if (modelname=='mainmodel_minus_Integron') {
+} else if (modelname=='minus_Integron') {
   outputnames_subset<-c('log10PlasmidSize','InsertionSequenceDensity','NumOtherResistanceClasses','CollectionDate','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(NumOtherResistanceClasses,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
-} else if (modelname=='mainmodel_minus_BiocideMetalResistance') {
+} else if (modelname=='minus_BiocideMetalResistance') {
   outputnames_subset<-c('log10PlasmidSize','InsertionSequenceDensity','NumOtherResistanceClasses','CollectionDate','Integron','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(NumOtherResistanceClasses,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
-} else if (modelname=='mainmodel_minus_RepliconCarriage') {
+} else if (modelname=='minus_RepliconCarriage') {
   outputnames_subset<-c('log10PlasmidSize','InsertionSequenceDensity','NumOtherResistanceClasses','CollectionDate','Integron','BiocideMetalResistance','ConjugativeSystem','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(NumOtherResistanceClasses,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
-} else if (modelname=='mainmodel_minus_HostTaxonomy') {
+} else if (modelname=='minus_HostTaxonomy') {
   outputnames_subset<-c('log10PlasmidSize','InsertionSequenceDensity','NumOtherResistanceClasses','CollectionDate','Integron','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(NumOtherResistanceClasses,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+Virulence+GeographicLocation+IsolationSource'
-} else if (modelname=='mainmodel_minus_log10PlasmidSize') {
+} else if (modelname=='minus_log10PlasmidSize') {
   outputnames_subset<-c('InsertionSequenceDensity','NumOtherResistanceClasses','CollectionDate','Integron','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(InsertionSequenceDensity,k=5,pc=0)+s(NumOtherResistanceClasses,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
   
   #models with multiple terms removed
-} else if (modelname=='mainmodel_minus_RepliconCarriage_NumOtherResistanceClasses') {
+} else if (modelname=='minus_RepliconCarriage_NumOtherResistanceClasses') {
   outputnames_subset<-c('log10PlasmidSize','InsertionSequenceDensity','CollectionDate','Integron','BiocideMetalResistance','ConjugativeSystem','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
-} else if (modelname=='mainmodel_minus_BiocideMetalResistance_NumOtherResistanceClasses') {
+} else if (modelname=='minus_BiocideMetalResistance_NumOtherResistanceClasses') {
   outputnames_subset<-c('log10PlasmidSize','InsertionSequenceDensity','CollectionDate','Integron','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
-} else if (modelname=='mainmodel_minus_Integron_NumOtherResistanceClasses') {
+} else if (modelname=='minus_Integron_NumOtherResistanceClasses') {
   outputnames_subset<-c('log10PlasmidSize','InsertionSequenceDensity','CollectionDate','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
-} else if (modelname=='mainmodel_minus_BiocideMetalResistance_Integron') {
+} else if (modelname=='minus_BiocideMetalResistance_Integron') {
   outputnames_subset<-c('log10PlasmidSize','InsertionSequenceDensity','NumOtherResistanceClasses','CollectionDate','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(NumOtherResistanceClasses,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'
-} else if (modelname=='mainmodel_minus_3associatedfactorsofConjugativeSystem') {
+} else if (modelname=='minus_3associatedfactorsofConjugativeSystem') {
   outputnames_subset<-c('InsertionSequenceDensity','CollectionDate','Integron','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(InsertionSequenceDensity,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+Virulence+GeographicLocation+IsolationSource'
-} else if (modelname=='mainmodel_minus_6associatedfactorsofConjugativeSystem') {
+} else if (modelname=='minus_6associatedfactorsofConjugativeSystem') {
   outputnames_subset<-c('CollectionDate','BiocideMetalResistance','ConjugativeSystem','Virulence','GeographicLocation','IsolationSource')
   frmtext<-'outcome%s~s(CollectionDate,k=5,pc=0)+BiocideMetalResistance+ConjugativeSystem+Virulence+GeographicLocation+IsolationSource'
 } else {
@@ -76,17 +81,24 @@ if (modelname=='mainmodel') {
 }
 
 
+if (modelname == 'mainmodel_NonImputedCollectionDates') {
+  finaldftrunc <- finaldftrunc %>% filter(!is.na(CollectionDate_Original))
+  print(str_c('Analysing plasmids with non-imputed collection dates. N = ', nrow(finaldftrunc)))
+}
+
+
+# set colour palette
 brewerpal1<-brewer.pal(8,'Set1')
 brewerpal<-c(brewerpal1,'#e0bb6d','#90EE90','#add8e6')
 brewerpal[6]<-'#ffd700'
 #plot(1:11,1:11,col=brewerpal,pch=16,cex=6)
 
-if (length(outcomeclasses)!=11) {
+if (length(outcomeclasses)>11) {
   pacman::p_load(rwantshue)
   scheme <- iwanthue(seed = 42, force_init = TRUE)
   brewerpal <- scheme$hex(length(resclasses))
 }
-
+brewerpal<-brewerpal[1:length(outcomeclasses)]
 
 # ---------------------------
 # convert categorical variables to factors
@@ -94,11 +106,10 @@ finaldftrunc$BiocideMetalResistance<-as.factor(finaldftrunc$BiocideMetalResistan
 finaldftrunc$Virulence<-as.factor(finaldftrunc$Virulence)
 finaldftrunc$Integron<-as.factor(finaldftrunc$Integron)
 finaldftrunc$ConjugativeSystem<-factor(finaldftrunc$ConjugativeSystem, ordered = FALSE,levels = c("non-mobilisable", "mobilisable", "conjugative"))
-finaldftrunc$GeographicLocation<-factor(finaldftrunc$GeographicLocation, ordered = FALSE,levels = c("high-income", "China", "United States", "other", "middle-income", "EU"))
+finaldftrunc$GeographicLocation<-factor(finaldftrunc$GeographicLocation, ordered = FALSE,levels = c("high-income", "China", "United States", "other", "middle-income", "EU & UK"))
 finaldftrunc$IsolationSource<-factor(finaldftrunc$IsolationSource, ordered = FALSE,levels = c("human", "livestock","other"))
 finaldftrunc$RepliconCarriage<-factor(finaldftrunc$RepliconCarriage, ordered = FALSE,levels = c("untyped", "single-replicon", "multi-replicon"))
-finaldftrunc$HostTaxonomy<-factor(finaldftrunc$HostTaxonomy, ordered = FALSE,levels = c("Enterobacteriaceae", "Proteobacteria_other", "Firmicutes","other"))
-finaldftrunc$HostTaxonomy<-factor(finaldftrunc$HostTaxonomy,levels=c('Enterobacteriaceae','Proteobacteria_other','Firmicutes','other'))
+finaldftrunc$HostTaxonomy<-factor(finaldftrunc$HostTaxonomy, ordered = FALSE,levels = c("Enterobacteriaceae", "Proteobacteria_non-Enterobacteriaceae", "Firmicutes","other"))
 for (outcomeclass in outcomeclasses) {
   print(outcomeclass)
   finaldftrunc[,gsub('%s',outcomeclass,'outcome%s')]<-as.factor(finaldftrunc[,gsub('%s',outcomeclass,'outcome%s')])
@@ -246,7 +257,7 @@ coefsdf<-do.call(rbind,coefslist)
 coefsdf<-coefsdf[order(coefsdf$ResistanceClass,coefsdf$FactorVariable),]
 if ('GeographicLocation' %in% outputnames_subset) {
   geographiesdf<-coefsdf[coefsdf$FactorVariable=='GeographicLocation',]
-  geographiesdf<-do.call(rbind,lapply(split(geographiesdf,geographiesdf$ResistanceClass),function(x) x[match(c("middle-income","EU","China","United States","other"),x$FactorLevel),]))
+  geographiesdf<-do.call(rbind,lapply(split(geographiesdf,geographiesdf$ResistanceClass),function(x) x[match(c("middle-income","EU & UK","China","United States","other"),x$FactorLevel),]))
   coefsdf[coefsdf$FactorVariable=='GeographicLocation',]<-geographiesdf
 }
 
@@ -265,10 +276,10 @@ levels(finaldftrunc$BiocideMetalResistance)<-c("Aabsence","Bpresence")
 levels(finaldftrunc$Virulence)<-c("Aabsence","Bpresence")
 levels(finaldftrunc$Integron)<-c("Aabsence","Bpresence")
 levels(finaldftrunc$ConjugativeSystem)<-c("Anon-mobilisable", "Bmobilisable", "Cconjugative")
-levels(finaldftrunc$GeographicLocation)<-c("Ahigh-income", "BChina", "CUnited States","Dother","Emiddle-income", "FEU")
+levels(finaldftrunc$GeographicLocation)<-c("Ahigh-income", "BChina", "CUnited States","Dother","Emiddle-income", "FEU & UK")
 levels(finaldftrunc$IsolationSource)<-c("Ahuman", "Blivestock","Cother")
 levels(finaldftrunc$RepliconCarriage)<-c("Auntyped", "Bsingle-replicon", "Cmulti-replicon")
-levels(finaldftrunc$HostTaxonomy)<-c("AEnterobacteriaceae", "BProteobacteria_other", "CFirmicutes","Dother")
+levels(finaldftrunc$HostTaxonomy)<-c("AEnterobacteriaceae", "BProteobacteria_non-Enterobacteriaceae", "CFirmicutes","Dother")
 
 
 # create models
@@ -288,17 +299,17 @@ saveRDS(modellist,file = gsub('%s',modelname,'output_adjusted/%s/modellist_prefi
 # plot coefficients and smooths using mgcViz; first create plot lists and save; then plot to pdf
 
 labelfunc<-function(x) {
-  #relabels facet grid labels (removing alphabetic prefix)
+  #re-labels facet grid labels (removing alphabetic prefix + additional re-labelling)
   x<-substr(x,2,nchar(x))
-  x<-str_replace(x,'Proteobacteria_other', 'Proteobacteria (non-Enterobacteriaceae)')
+  x<-str_replace(x,'Proteobacteria_non-Enterobacteriaceae', 'Proteobacteria (non-Enterobacteriaceae)')
   return(x)
 }
 
 
 
 outputnames_all<-c('log10PlasmidSize','InsertionSequenceDensity','NumOtherResistanceClasses','CollectionDate','Integron','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
-ggtitles_all<-c('       log10 Plasmid size (kb)\n       reference: 10 kb\n','       Insertion sequence density\n       reference: 0\n','       Number of other resistance gene classes\n       reference: 0\n','       Collection date\n       reference: collection year 1994\n','Integron presence\nreference: absence','Biocide/metal resistance gene presence\nreference: absence','Conjugative system\nreference: non-mobilisable','Replicon carriage\nreference: untyped','Host taxonomy\nreference: Enterobacteriaceae','Virulence gene presence\nreference: absence','Geographic location\nreference: high-income','Isolation source\nreference: human')
-xlabs_all<-c('log10 Plasmid size (centred on 10 kb)','Insertion sequence density (frequency per 10 kb)','Other resistance gene classes','Years since reference collection year','Integron presence','Biocide/metal resistance gene presence','Conjugative system','Replicon carriage','Host taxonomy','Virulence gene presence','Geographic location','Isolation source')
+ggtitles_all<-c('       reference: 10 kb\n','       reference: 0 insertion sequences\n','       reference: 0 other ARG types\n','       reference: collection year 1994\n','Integron presence\nreference: absence','Biocide/metal resistance gene presence\nreference: absence','Conjugative system\nreference: non-mobilisable','Replicon carriage\nreference: untyped','Host taxonomy\nreference: Enterobacteriaceae','Virulence gene presence\nreference: absence','Geographic location\nreference: high-income','Isolation source\nreference: human')
+xlabs_all<-c('Plasmid size (kb)','Insertion sequence density (frequency per 10 kb)','Number of other ARG types','Collection date','Integron presence','Biocide/metal resistance gene presence','Conjugative system','Replicon carriage','Host taxonomy','Virulence gene presence','Geographic location','Isolation source')
 numpanels_all<-c(1,1,1,1,1,1,2,2,3,1,5,2)
 paraplot_width_multiplicationfactor_all<-c(NA,NA,NA,NA,1,1,1.2,1.2,1.4,1,1.8,1.2)
 #facetedparaplot_width_multiplicationfactor_all<-c(NA,NA,NA,NA,1,1,2,2,3,1,5,2) #use for 4 x 5
@@ -363,8 +374,8 @@ for (i in 1:length(outputnames)) {
     upperlim_prob<-0.4
   }
   if (outputname=='NumOtherResistanceClasses') {
-    lowerlim<--4
-    upperlim<-8
+    lowerlim<--3
+    upperlim<-9
     upperlim_prob<-1
   }
   if (outputname=='CollectionDate') {
@@ -405,7 +416,7 @@ for (i in 1:length(outputnames)) {
         o1<-o1 + theme(axis.text.x = element_text(colour='white'),axis.ticks.x = element_blank())
         o2<-o2 + theme(axis.text.x = element_text(colour='white'),axis.ticks.x = element_blank())
       }
-      if (!j %in% c(1,7)) {
+      if (!j %in% c(1,6)) {
         o1<-o1+theme(axis.text.y = element_text(colour='white'),axis.ticks.y = element_blank())
         o2<-o2+theme(axis.text.y = element_text(colour='white'),axis.ticks.y = element_blank())
       }
@@ -419,13 +430,16 @@ for (i in 1:length(outputnames)) {
       if (j == 1) {
         o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-4),'pt'),axis.text=element_text(size=rel(1.1)))
         o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-4),'pt'),axis.text=element_text(size=rel(1.1)))
-      } else if (j == 7) {
+      } else if (j == 6) {
         o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-4),'pt'),axis.text=element_text(size=rel(1.1)))
         o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-4),'pt'),axis.text=element_text(size=rel(1.1)))
-      } else if (j == 6) {
+      } else if (j == 5) {
         o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
         o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
-      } else if (j > 7) {
+      } else if (j == 10) {
+        o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+        o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+      } else if (j > 6 && j < 10) {
         o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
         o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
       } else {
@@ -436,6 +450,17 @@ for (i in 1:length(outputnames)) {
       o3<-o2
       o3<-o3 + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(0,1))
       o2<-o2 + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(0,upperlim_prob))
+      #adjust x axis scales for plasmid size and collection date
+      if (outputname=='log10PlasmidSize') {
+        o1<-o1 + scale_x_continuous(labels = log10size_tokb, breaks = c(-0.522,0,0.5444,1,1.478))
+        o2<-o2 + scale_x_continuous(labels = log10size_tokb, breaks = c(-0.522,0,0.5444,1,1.478))
+        o3<-o3 + scale_x_continuous(labels = log10size_tokb, breaks = c(-0.522,0,0.5444,1,1.478))
+      }
+      if (outputname=='CollectionDate') {
+        o1<-o1 + scale_x_continuous(labels = yearsince_tocollectionyear) + theme(axis.text.x = element_text(angle = 30, hjust=1,vjust=1))
+        o2<-o2 + scale_x_continuous(labels = yearsince_tocollectionyear) + theme(axis.text.x = element_text(angle = 30, hjust=1,vjust=1))
+        o3<-o3 + scale_x_continuous(labels = yearsince_tocollectionyear) + theme(axis.text.x = element_text(angle = 30, hjust=1,vjust=1))
+      }
       #assign plots to list
       smoothplotlistnest1[[outcomeclasses[j]]]<-o1 #logodds
       smoothplotlistnest2[[outcomeclasses[j]]]<-o2 #prob
@@ -468,7 +493,7 @@ saveRDS(facetedparaplotlist,file = gsub('%s',modelname,'output_adjusted/%s/coeff
 #height=7.4
 #height=4.8
 width=12
-height=5.6
+height=5.8
 probwidth=12.7  # need to adjust for longer ylab text
 for (i in 1:length(smoothplotnames)) {
   smoothplotname<-smoothplotnames[i]

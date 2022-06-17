@@ -5,18 +5,17 @@ dir.create('output_adjusted/exploratory', showWarnings = FALSE)
 set.seed(42)
 
 finaldftrunc<-read.table('data/plasmiddf_transformed.tsv',header=TRUE,sep='\t',stringsAsFactors = TRUE,quote = "",comment.char = "")
-outcomeclasses<-c('aminoglycoside','phenicol','sulphonamide','tetracycline','macrolide','TEM.1','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
+outcomeclasses<-c('aminoglycoside','sulphonamide','tetracycline','phenicol','macrolide','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
 
 # convert categorical variables to factors
 finaldftrunc$BiocideMetalResistance<-as.factor(finaldftrunc$BiocideMetalResistance)
 finaldftrunc$Virulence<-as.factor(finaldftrunc$Virulence)
 finaldftrunc$Integron<-as.factor(finaldftrunc$Integron)
 finaldftrunc$ConjugativeSystem<-factor(finaldftrunc$ConjugativeSystem, ordered = FALSE,levels = c("non-mobilisable", "mobilisable", "conjugative"))
-finaldftrunc$GeographicLocation<-factor(finaldftrunc$GeographicLocation, ordered = FALSE,levels = c("high-income", "middle-income", "China", "United States", "EU", "other"))
+finaldftrunc$GeographicLocation<-factor(finaldftrunc$GeographicLocation, ordered = FALSE,levels = c("high-income", "middle-income", "EU & UK", "China", "United States", "other"))
 finaldftrunc$IsolationSource<-factor(finaldftrunc$IsolationSource, ordered = FALSE,levels = c("human", "livestock","other"))
 finaldftrunc$RepliconCarriage<-factor(finaldftrunc$RepliconCarriage, ordered = FALSE,levels = c("untyped", "single-replicon", "multi-replicon"))
-finaldftrunc$HostTaxonomy<-factor(finaldftrunc$HostTaxonomy, ordered = FALSE,levels = c("Enterobacteriaceae", "Proteobacteria_other", "Firmicutes","other"))
-finaldftrunc$HostTaxonomy<-factor(finaldftrunc$HostTaxonomy,levels=c('Enterobacteriaceae','Proteobacteria (non-Enterobacteriaceae)','Firmicutes','other'))
+finaldftrunc$HostTaxonomy<-factor(finaldftrunc$HostTaxonomy, ordered = FALSE,levels = c("Enterobacteriaceae", "Proteobacteria_non-Enterobacteriaceae", "Firmicutes","other"))
 for (outcomeclass in outcomeclasses) {
   finaldftrunc[,gsub('%s',outcomeclass,'outcome%s')]<-as.factor(finaldftrunc[,gsub('%s',outcomeclass,'outcome%s')])
 }
@@ -60,7 +59,7 @@ model1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
 # initial model that works
 frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=5,pc=0)+s(InsertionSequenceDensity,k=5,pc=0)+s(NumOtherResistanceClasses%s,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))
 model1.1<-gam(frm,family='binomial',data=finaldftrunc,method = 'ML')
-gam.check(model1.1)  # log10PlasmidSize and NumOtherResistanceClasses basis dimension inadequate at p < 0.0001; InsertionSequenceDensity inadequate at p < 0.05
+gam.check(model1.1)  # log10PlasmidSize, NumOtherResistanceClasses, InsertionSequenceDensity basis dimension inadequate
 
 # increasing InsertionSequenceDensity and log10PlasmidSize basis dimensions fails to resolve low p-value (see gam.check output)
 frm <- formula(gsub('%s',outcomeclass,'outcome%s~s(log10PlasmidSize,k=7)+s(InsertionSequenceDensity,k=7)+s(NumOtherResistanceClasses%s,k=5,pc=0)+s(CollectionDate,k=5,pc=0)+Integron+BiocideMetalResistance+ConjugativeSystem+RepliconCarriage+HostTaxonomy+Virulence+GeographicLocation+IsolationSource'))

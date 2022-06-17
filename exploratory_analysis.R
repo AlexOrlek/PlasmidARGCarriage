@@ -236,7 +236,7 @@ for (i in 1:nrow(countryregiondf)) {
   }
 }
 
-GeographicLocation<-factor(geographies, ordered = FALSE,levels = c("high-income", "middle-income", "China", "United States", "EU & UK", "other"))
+GeographicLocation<-factor(geographies, ordered = FALSE,levels = c("high-income", "middle-income", "EU & UK", "China", "United States", "other"))
 
 #> WB_UMI_count
 #[1] 593
@@ -349,8 +349,8 @@ for (i in 1:nrow(plasmiddf)) {
 }
 
 
-taxa[taxa=='Proteobacteria']<-'Proteobacteria_other'
-HostTaxonomy<-factor(taxa, ordered = FALSE,levels = c("Enterobacteriaceae", "Proteobacteria_other", "Firmicutes","other"))
+taxa[taxa=='Proteobacteria']<-'Proteobacteria_non-Enterobacteriaceae'
+HostTaxonomy<-factor(taxa, ordered = FALSE,levels = c("Enterobacteriaceae", "Proteobacteria_non-Enterobacteriaceae", "Firmicutes","other"))
 
 # explore breakdown of 'other' category
 sapply(list(other_missing, other_uncategorised), length)  # 0 2219  # Note there were no rows where all where missing since uncultured bacterium is given as species where other taxonomic info is unknown
@@ -433,13 +433,17 @@ finaldftrunc$InsertionSequenceDensity[finaldftrunc$InsertionSequenceDensity>Inse
 CollectionDate5pct<-round(quantile(finaldftrunc$CollectionDate, probs = c(0.05, 0.95))[1])
 finaldftrunc$CollectionDate[finaldftrunc$CollectionDate<CollectionDate5pct]<-CollectionDate5pct
 
+#determine percentiles for NumOtherResistanceClasses; select modal value and apply this to all NumOtherResistanceClasses outcomes
 NumOtherResistanceClassestrunccutoffs<-list()
 for (outcomeclass in outcomeclasses) {
   NumOtherResistanceClasses95pct<-round(quantile(finaldftrunc[,gsub('%s',outcomeclass,'NumOtherResistanceClasses%s')], probs = c(0.05, 0.95))[2])
-  finaldftrunc[,gsub('%s',outcomeclass,'NumOtherResistanceClasses%s')][finaldftrunc[,gsub('%s',outcomeclass,'NumOtherResistanceClasses%s')]>NumOtherResistanceClasses95pct]<-NumOtherResistanceClasses95pct
   NumOtherResistanceClassestrunccutoffs[[outcomeclass]]<-NumOtherResistanceClasses95pct
 }
 
+NumOtherResistanceClasses95pct_modal_value <- as.integer(names(rev(sort(table(unlist(NumOtherResistanceClassestrunccutoffs))))[1]))  # 4
+for (outcomeclass in outcomeclasses) {
+  finaldftrunc[,gsub('%s',outcomeclass,'NumOtherResistanceClasses%s')][finaldftrunc[,gsub('%s',outcomeclass,'NumOtherResistanceClasses%s')]>NumOtherResistanceClasses95pct_modal_value]<-NumOtherResistanceClasses95pct_modal_value
+}
 
 # express collection date as date since 5% percentile (1994)
 finaldftrunc$CollectionDate<-finaldftrunc$CollectionDate-round(as.numeric(CollectionDate5pct))

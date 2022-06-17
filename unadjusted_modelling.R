@@ -1,11 +1,12 @@
 pacman::p_load(mgcv, mgcv.helper, RColorBrewer, mgcViz, scales, grid, cowplot, devtools, gsubfn, stringr)
 set.seed(42)
+source('functions.R')
 
 finaldftrunc<-read.table('data/plasmiddf_transformed.tsv',header=TRUE,sep='\t',stringsAsFactors = TRUE,quote = "",comment.char = "")
 
 # ---------------------------
 # set parameters
-outcomeclasses<-c('aminoglycoside','phenicol','sulphonamide','tetracycline','macrolide','TEM.1','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
+outcomeclasses<-c('aminoglycoside','sulphonamide','tetracycline','phenicol','macrolide','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
 
 args = commandArgs(trailingOnly=TRUE)
 modelname<-args[1]
@@ -27,20 +28,20 @@ dir.create(file.path(gsub('%s',modelname,'output_unadjusted/%s/coefficientplots/
 
 if (modelname=='log10PlasmidSize') {
   frmtext<-'outcome%s~s(log10PlasmidSize,k=5,pc=0)'
-  myggtitle<-'       log10 Plasmid size (kb)\n       reference: 10 kb\n'
-  myxlab<-'log10 Plasmid size (centred on 10 kb)'
+  myggtitle<-'       reference: 10 kb\n'
+  myxlab<-'Plasmid size (kb)'
 } else if (modelname=='InsertionSequenceDensity') {
   frmtext<-'outcome%s~s(InsertionSequenceDensity,k=5,pc=0)'
-  myggtitle<-'       Insertion sequence density\n       reference: 0\n'
+  myggtitle<-'       reference: 0 insertion sequences\n'
   myxlab<-'Insertion sequence density (frequency per 10 kb)'
 } else if (modelname=='NumOtherResistanceClasses') {
   frmtext<-'outcome%s~s(NumOtherResistanceClasses,k=5,pc=0)'
-  myggtitle<-'       Number of other resistance gene classes\n       reference: 0\n'
-  myxlab<-'Other resistance gene classes'
+  myggtitle<-'       reference: 0 other ARG types\n'
+  myxlab<-'Number of other ARG types'
 } else if (modelname=='CollectionDate') {
   frmtext<-'outcome%s~s(CollectionDate,k=5,pc=0)'
-  myggtitle<-'       Collection date\n       reference: collection year 1994\n'
-  myxlab<-'Years since reference collection year'
+  myggtitle<-'       reference: collection year 1994\n'
+  myxlab<-'Collection date'
 } else {
   stop('modelname not recognised')
 }
@@ -51,12 +52,12 @@ brewerpal<-c(brewerpal1,'#e0bb6d','#90EE90','#add8e6')
 brewerpal[6]<-'#ffd700'
 #plot(1:11,1:11,col=brewerpal,pch=16,cex=6)
 
-if (length(outcomeclasses)!=11) {
+if (length(outcomeclasses)>11) {
   pacman::p_load(rwantshue)
   scheme <- iwanthue(seed = 42, force_init = TRUE)
   brewerpal <- scheme$hex(length(resclasses))
 }
-
+brewerpal<-brewerpal[1:length(outcomeclasses)]
 
 # ---------------------------
 # convert categorical variables to factors
@@ -64,11 +65,10 @@ finaldftrunc$BiocideMetalResistance<-as.factor(finaldftrunc$BiocideMetalResistan
 finaldftrunc$Virulence<-as.factor(finaldftrunc$Virulence)
 finaldftrunc$Integron<-as.factor(finaldftrunc$Integron)
 finaldftrunc$ConjugativeSystem<-factor(finaldftrunc$ConjugativeSystem, ordered = FALSE,levels = c("non-mobilisable", "mobilisable", "conjugative"))
-finaldftrunc$GeographicLocation<-factor(finaldftrunc$GeographicLocation, ordered = FALSE,levels = c("high-income", "China", "United States", "other", "middle-income", "EU"))
+finaldftrunc$GeographicLocation<-factor(finaldftrunc$GeographicLocation, ordered = FALSE,levels = c("high-income", "China", "United States", "other", "middle-income", "EU & UK"))
 finaldftrunc$IsolationSource<-factor(finaldftrunc$IsolationSource, ordered = FALSE,levels = c("human", "livestock","other"))
 finaldftrunc$RepliconCarriage<-factor(finaldftrunc$RepliconCarriage, ordered = FALSE,levels = c("untyped", "single-replicon", "multi-replicon"))
-finaldftrunc$HostTaxonomy<-factor(finaldftrunc$HostTaxonomy, ordered = FALSE,levels = c("Enterobacteriaceae", "Proteobacteria_other", "Firmicutes","other"))
-finaldftrunc$HostTaxonomy<-factor(finaldftrunc$HostTaxonomy,levels=c('Enterobacteriaceae','Proteobacteria_other','Firmicutes','other'))
+finaldftrunc$HostTaxonomy<-factor(finaldftrunc$HostTaxonomy, ordered = FALSE,levels = c("Enterobacteriaceae", "Proteobacteria_non-Enterobacteriaceae", "Firmicutes","other"))
 for (outcomeclass in outcomeclasses) {
   print(outcomeclass)
   finaldftrunc[,gsub('%s',outcomeclass,'outcome%s')]<-as.factor(finaldftrunc[,gsub('%s',outcomeclass,'outcome%s')])
@@ -102,12 +102,6 @@ for (outcomeclass in outcomeclasses) {
   plot(modellist[[outcomeclass]], pages = 1, trans = plogis, shift = coef(modellist[[outcomeclass]])[1], all.terms = TRUE,residuals = FALSE,shade=TRUE)
   dev.off()
 }
-
-###testing
-#anova(modellist[['aminoglycoside']])
-#summary(modellist[['aminoglycoside']])
-
-###
 
 # save model summaries to file
 pvaluesfile<-gsub('%s',modelname,'output_unadjusted/%s/pvalues/pvalues.txt')
@@ -191,8 +185,8 @@ if (modelname=='InsertionSequenceDensity') {
   upperlim_prob<-0.4
 }
 if (modelname=='NumOtherResistanceClasses') {
-  lowerlim<--4
-  upperlim<-8
+  lowerlim<--3
+  upperlim<-9
   upperlim_prob<-1
 }
 if (modelname=='CollectionDate') {
@@ -220,7 +214,7 @@ for (j in 1:length(outcomeclasses)) {
     o1<-o1 + theme(axis.text.x = element_text(colour='white'),axis.ticks.x = element_blank())
     o2<-o2 + theme(axis.text.x = element_text(colour='white'),axis.ticks.x = element_blank())
   }
-  if (!j %in% c(1,7)) {
+  if (!j %in% c(1,6)) {
     o1<-o1+theme(axis.text.y = element_text(colour='white'),axis.ticks.y = element_blank())
     o2<-o2+theme(axis.text.y = element_text(colour='white'),axis.ticks.y = element_blank())
   }
@@ -234,13 +228,16 @@ for (j in 1:length(outcomeclasses)) {
   if (j == 1) {
     o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-4),'pt'),axis.text=element_text(size=rel(1.1)))
     o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-4),'pt'),axis.text=element_text(size=rel(1.1)))
-  } else if (j == 7) {
+  } else if (j == 6) {
     o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-4),'pt'),axis.text=element_text(size=rel(1.1)))
     o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-4),'pt'),axis.text=element_text(size=rel(1.1)))
-  } else if (j == 6) {
+  } else if (j == 5) {
     o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
     o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
-  } else if (j > 7) {
+  } else if (j == 10) {
+    o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+    o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+  } else if (j > 6 && j < 10) {
     o1<-o1 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
     o2<-o2 + xlab('') + ylab('') + theme(plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
   } else {
@@ -251,11 +248,23 @@ for (j in 1:length(outcomeclasses)) {
   o3<-o2
   o3<-o3 + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(0,1))
   o2<-o2 + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(0,upperlim_prob))
+  #adjust x axis scales for plasmid size and collection date
+  if (modelname=='log10PlasmidSize') {
+    o1<-o1 + scale_x_continuous(labels = log10size_tokb, breaks = c(-0.522,0,0.5444,1,1.478))
+    o2<-o2 + scale_x_continuous(labels = log10size_tokb, breaks = c(-0.522,0,0.5444,1,1.478))
+    o3<-o3 + scale_x_continuous(labels = log10size_tokb, breaks = c(-0.522,0,0.5444,1,1.478))
+  }
+  if (modelname=='CollectionDate') {
+    o1<-o1 + scale_x_continuous(labels = yearsince_tocollectionyear) + theme(axis.text.x = element_text(angle = 30, hjust=1,vjust=1))
+    o2<-o2 + scale_x_continuous(labels = yearsince_tocollectionyear) + theme(axis.text.x = element_text(angle = 30, hjust=1,vjust=1))
+    o3<-o3 + scale_x_continuous(labels = yearsince_tocollectionyear) + theme(axis.text.x = element_text(angle = 30, hjust=1,vjust=1))
+  }
   #assign plots to list
   smoothplotlistnest1[[outcomeclasses[j]]]<-o1 #logodds
   smoothplotlistnest2[[outcomeclasses[j]]]<-o2 #prob
   smoothplotlistnest3[[outcomeclasses[j]]]<-o3
 }
+
 smoothplotlist1[[modelname]]<-smoothplotlistnest1
 smoothplotlist2[[modelname]]<-smoothplotlistnest2
 smoothplotlist3[[modelname]]<-smoothplotlistnest3
@@ -271,7 +280,7 @@ saveRDS(smoothplotlist3,file = gsub('%s',modelname,'output_unadjusted/%s/coeffic
 
 # smooth plots
 width=12
-height=5.6
+height=5.8
 probwidth=12.7  # need to adjust for longer ylab text
 
 

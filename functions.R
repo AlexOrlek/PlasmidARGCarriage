@@ -113,3 +113,23 @@ writeconcurvity<-function(model,outcomeclass,concurvityfile) {
     cat(cout,sep='\n',append = TRUE,file = concurvityfile)
   }
 }
+
+
+# ---------------------------
+# unadjusted and adjusted analysis functions
+
+# formatter functions for axis tick labels
+log10size_tokb <- function(x) {
+  x <- x + 4
+  x <- 10 ** x
+  x <- round(floor(x/1000))
+  return(x)
+}
+
+yearsince_tocollectionyear <- function(x, referenceyr = 1994) {
+  x <- round(as.integer(x) + as.integer(referenceyr))
+  return(x)
+} 
+
+
+

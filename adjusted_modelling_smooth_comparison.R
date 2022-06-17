@@ -1,16 +1,17 @@
 pacman::p_load(tidyverse, mgcv, mgcv.helper, RColorBrewer, mgcViz, grid, gsubfn)
 
-alternativemodelnames<-c('mainmodel_minus_NumOtherResistanceClasses','mainmodel_minus_Integron','mainmodel_minus_BiocideMetalResistance','mainmodel_minus_RepliconCarriage','mainmodel_minus_HostTaxonomy','mainmodel_minus_log10PlasmidSize','mainmodel_minus_RepliconCarriage_NumOtherResistanceClasses','mainmodel_minus_BiocideMetalResistance_NumOtherResistanceClasses','mainmodel_minus_Integron_NumOtherResistanceClasses','mainmodel_minus_BiocideMetalResistance_Integron')
+alternativemodelnames<-c('minus_NumOtherResistanceClasses','minus_Integron','minus_BiocideMetalResistance','minus_RepliconCarriage','minus_HostTaxonomy','minus_log10PlasmidSize','minus_RepliconCarriage_NumOtherResistanceClasses','minus_BiocideMetalResistance_NumOtherResistanceClasses','minus_Integron_NumOtherResistanceClasses','minus_BiocideMetalResistance_Integron')
 
-outcomeclasses<-c('aminoglycoside','phenicol','sulphonamide','tetracycline','macrolide','TEM.1','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
+outcomeclasses<-c('aminoglycoside','sulphonamide','tetracycline','phenicol','macrolide','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
 outputnames<-c('log10PlasmidSize','InsertionSequenceDensity','NumOtherResistanceClasses','CollectionDate')
-xlabs<-c('log10 Plasmid size (centred on 10 kb)','Insertion sequence density (frequency per 10 kb)','Other resistance gene classes','Years since reference collection year')
-ggtitles<-c('        log10 Plasmid size (kb)\n        reference: 10 kb\n','        Insertion sequence density\n        reference: 0\n','        Number of other resistance gene classes\n        reference: 0\n','        Collection date\n        reference: collection year 1994\n')
+xlabs<-c('Plasmid size (kb)','Insertion sequence density (frequency per 10 kb)','Number of other ARG types','Collection date')
+ggtitles<-c('        reference: 10 kb\n','        reference: 0 insertion sequences\n','        reference: 0 other ARG types\n','        reference: collection year 1994\n')
 
 
 brewerpal1<-brewer.pal(8,'Set1')
 brewerpal<-c(brewerpal1,'#e0bb6d','#90EE90','#add8e6')
 brewerpal[6]<-'#ffd700'
+brewerpal<-brewerpal[1:length(outcomeclasses)]
 
 # ---------------------------
 # N.B loading probability scale model data because this stored both logodds scale (y) and probability scale (ty) coordinate data
@@ -49,18 +50,20 @@ for (i in 1:length(outputnames)) {
 datalist_prob<-list()
 for (modelname in alternativemodelnames) {
   print(modelname)
+  #create output directory
+  dir.create(file.path('output_adjusted',modelname,'smooth_comparison'), showWarnings = FALSE)
   smoothplotlist_prob<-readRDS(gsub('%s',modelname,'output_adjusted/%s/coefficientplots/probscale/smoothplotlist2.rds'))
   datalist_prob[[modelname]]<-list()
   for (i in 1:length(outputnames)) {
     outputname<-outputnames[i]
     #skip where outputname not applicable to model
-    if (modelname %in% c('mainmodel_minus_NumOtherResistanceClasses','mainmodel_minus_RepliconCarriage_NumOtherResistanceClasses','mainmodel_minus_BiocideMetalResistance_NumOtherResistanceClasses','mainmodel_minus_Integron_NumOtherResistanceClasses') && outputname=='NumOtherResistanceClasses') {
+    if (modelname %in% c('minus_NumOtherResistanceClasses','minus_RepliconCarriage_NumOtherResistanceClasses','minus_BiocideMetalResistance_NumOtherResistanceClasses','minus_Integron_NumOtherResistanceClasses') && outputname=='NumOtherResistanceClasses') {
       next
     }
-    if (modelname %in% c('mainmodel_minus_log10PlasmidSize','mainmodel_minus_log10PlasmidSize_InsertionSequenceDensity') && outputname=='log10PlasmidSize') {
+    if (modelname %in% c('minus_log10PlasmidSize','minus_log10PlasmidSize_InsertionSequenceDensity') && outputname=='log10PlasmidSize') {
       next
     }
-    if (modelname %in% c('mainmodel_minus_InsertionSequenceDensity','mainmodel_minus_log10PlasmidSize_InsertionSequenceDensity') && outputname=='InsertionSequenceDensity') {
+    if (modelname %in% c('minus_InsertionSequenceDensity','minus_log10PlasmidSize_InsertionSequenceDensity') && outputname=='InsertionSequenceDensity') {
       next
     }
     datalist_prob[[modelname]][[outputname]]<-list()
@@ -85,13 +88,13 @@ for (modelname in alternativemodelnames) {
   for (i in 1:length(outputnames)) {
     outputname<-outputnames[i]
     #skip where outputname not applicable to model
-    if (modelname %in% c('mainmodel_minus_NumOtherResistanceClasses','mainmodel_minus_RepliconCarriage_NumOtherResistanceClasses','mainmodel_minus_BiocideMetalResistance_NumOtherResistanceClasses','mainmodel_minus_Integron_NumOtherResistanceClasses') && outputname=='NumOtherResistanceClasses') {
+    if (modelname %in% c('minus_NumOtherResistanceClasses','minus_RepliconCarriage_NumOtherResistanceClasses','minus_BiocideMetalResistance_NumOtherResistanceClasses','minus_Integron_NumOtherResistanceClasses') && outputname=='NumOtherResistanceClasses') {
       next
     }
-    if (modelname %in% c('mainmodel_minus_log10PlasmidSize','mainmodel_minus_log10PlasmidSize_InsertionSequenceDensity') && outputname=='log10PlasmidSize') {
+    if (modelname %in% c('minus_log10PlasmidSize','minus_log10PlasmidSize_InsertionSequenceDensity') && outputname=='log10PlasmidSize') {
       next
     }
-    if (modelname %in% c('mainmodel_minus_InsertionSequenceDensity','mainmodel_minus_log10PlasmidSize_InsertionSequenceDensity') && outputname=='InsertionSequenceDensity') {
+    if (modelname %in% c('minus_InsertionSequenceDensity','minus_log10PlasmidSize_InsertionSequenceDensity') && outputname=='InsertionSequenceDensity') {
       next
     }
     #logodds limits
@@ -102,8 +105,8 @@ for (modelname in alternativemodelnames) {
       upperlim_logodds<-6
     }
     if (outputname=='NumOtherResistanceClasses') {
-      lowerlim_logodds<--4
-      upperlim_logodds<-8
+      lowerlim_logodds<--3
+      upperlim_logodds<-9
     }
     if (outputname=='CollectionDate') {
       lowerlim_logodds<--2
@@ -131,17 +134,19 @@ for (modelname in alternativemodelnames) {
       if (j<=5) {
         p_logodds<-p_logodds+theme(axis.text.x = element_text(colour='white'),axis.ticks.x = element_blank())
       }
-      if (!j %in% c(1,7)) {
+      if (!j %in% c(1,6)) {
         p_logodds<-p_logodds+theme(axis.text.y = element_text(colour='white'),axis.ticks.y = element_blank())
       }
       #further customise plots
       if (j == 1) {
         p_logodds <- p_logodds + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-4),'pt'),axis.text=element_text(size=rel(1.1)))
-      } else if (j == 7) {
-        p_logodds <- p_logodds + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-4),'pt'),axis.text=element_text(size=rel(1.1)))
       } else if (j == 6) {
+        p_logodds <- p_logodds + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-4),'pt'),axis.text=element_text(size=rel(1.1)))
+      } else if (j == 5) {
         p_logodds <- p_logodds + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
-      } else if (j > 7) {
+      } else if (j == 10) {
+        p_logodds <- p_logodds + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+      } else if (j > 6 && j < 10) {
         p_logodds <- p_logodds + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
       } else {
         p_logodds <- p_logodds + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
@@ -164,11 +169,13 @@ for (modelname in alternativemodelnames) {
       #further customise plot
       if (j == 1) {
         p_prob <- p_prob + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-4),'pt'),axis.text=element_text(size=rel(1.1)))
-      } else if (j == 7) {
-        p_prob <- p_prob + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-4),'pt'),axis.text=element_text(size=rel(1.1)))
       } else if (j == 6) {
+        p_prob <- p_prob + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-4),'pt'),axis.text=element_text(size=rel(1.1)))
+      } else if (j == 5) {
         p_prob <- p_prob + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
-      } else if (j > 7) {
+      } else if (j == 10) {
+        p_prob <- p_prob + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,12,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
+      } else if (j > 6 && j < 10) {
         p_prob <- p_prob + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-4,-14),'pt'),axis.text=element_text(size=rel(1.1)))
       } else {
         p_prob <- p_prob + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title=element_text(hjust=0,size=13,colour='#525252'),plot.margin = unit(c(2,4,-12,-14),'pt'),axis.text=element_text(size=rel(1.1)))
@@ -181,40 +188,36 @@ for (modelname in alternativemodelnames) {
 }
 
 
-
-
-
-
 # ---------------------------
 # save plots as gridplots
 width=12
 #height=4.8  #5.2
-height=5.6
+height=5.8
 #width=10
 #height=3.75
 for (modelname in alternativemodelnames) {
   for (i in 1:length(outputnames)) {
     outputname<-outputnames[i]
     #skip where outputname not applicable to model
-    if (modelname %in% c('mainmodel_minus_NumOtherResistanceClasses','mainmodel_minus_RepliconCarriage_NumOtherResistanceClasses','mainmodel_minus_BiocideMetalResistance_NumOtherResistanceClasses','mainmodel_minus_Integron_NumOtherResistanceClasses') && outputname=='NumOtherResistanceClasses') {
+    if (modelname %in% c('minus_NumOtherResistanceClasses','minus_RepliconCarriage_NumOtherResistanceClasses','minus_BiocideMetalResistance_NumOtherResistanceClasses','minus_Integron_NumOtherResistanceClasses') && outputname=='NumOtherResistanceClasses') {
       next
     }
-    if (modelname %in% c('mainmodel_minus_log10PlasmidSize','mainmodel_minus_log10PlasmidSize_InsertionSequenceDensity') && outputname=='log10PlasmidSize') {
+    if (modelname %in% c('minus_log10PlasmidSize','minus_log10PlasmidSize_InsertionSequenceDensity') && outputname=='log10PlasmidSize') {
       next
     }
-    if (modelname %in% c('mainmodel_minus_InsertionSequenceDensity','mainmodel_minus_log10PlasmidSize_InsertionSequenceDensity') && outputname=='InsertionSequenceDensity') {
+    if (modelname %in% c('minus_InsertionSequenceDensity','minus_log10PlasmidSize_InsertionSequenceDensity') && outputname=='InsertionSequenceDensity') {
       next
     }
     #log-odds
-    pdf(gsubfn('%1|%2',list('%1'=modelname,'%2'=outputname),'output_adjusted/%1/coefficientplots/logoddsscale/%2_vs_mainmodel.pdf'),width=width,height=height)
+    pdf(gsubfn('%1|%2',list('%1'=modelname,'%2'=outputname),'output_adjusted/%1/smooth_comparison/logodds_%2_vs_mainmodel.pdf'),width=width,height=height)
     gridPrint(grobs=smoothplotcomparisonlist_logodds[[modelname]][[outputname]][outcomeclasses],nrow=2,bottom=textGrob(xlabs[i],gp=gpar(fontsize=15), vjust=-0.1),left=textGrob('Effect on log odds',gp=gpar(fontsize=15),rot=90, vjust=1),top = grid::textGrob(ggtitles[i], x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=13,lineheight=1)))
     dev.off()
     #prob
-    pdf(gsubfn('%1|%2',list('%1'=modelname,'%2'=outputname),'output_adjusted/%1/coefficientplots/probscale/%2_vs_mainmodel.pdf'),width=width,height=height)
+    pdf(gsubfn('%1|%2',list('%1'=modelname,'%2'=outputname),'output_adjusted/%1/smooth_comparison/p_%2_vs_mainmodel.pdf'),width=width,height=height)
     gridPrint(grobs=smoothplotcomparisonlist_prob[[modelname]][[outputname]][outcomeclasses],nrow=2,bottom=textGrob(xlabs[i],gp=gpar(fontsize=15), vjust=-0.1),left=textGrob('Effect on predicted probability',gp=gpar(fontsize=15),rot=90, vjust=1),top = grid::textGrob(ggtitles[i], x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=13,lineheight=1)))
     dev.off()
     #prob y0to1
-    pdf(gsubfn('%1|%2',list('%1'=modelname,'%2'=outputname),'output_adjusted/%1/coefficientplots/probscale/ylim0to1_%2_vs_mainmodel.pdf'),width=width,height=height)
+    pdf(gsubfn('%1|%2',list('%1'=modelname,'%2'=outputname),'output_adjusted/%1/smooth_comparison/pylim0to1_%2_vs_mainmodel.pdf'),width=width,height=height)
     rescaledplots<-lapply(smoothplotcomparisonlist_prob[[modelname]][[outputname]], function(x) x + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(0,1)))
     gridPrint(grobs=rescaledplots[outcomeclasses],nrow=2,bottom=textGrob(xlabs[i],gp=gpar(fontsize=15), vjust=-0.1),left=textGrob('Effect on predicted probability',gp=gpar(fontsize=15),rot=90, vjust=1),top = grid::textGrob(ggtitles[i], x = 0, hjust = 0, vjust=0.75, gp=gpar(fontsize=13,lineheight=1)))
     dev.off()
