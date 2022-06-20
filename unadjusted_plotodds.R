@@ -25,7 +25,7 @@ if (length(resclasses)>11) {
 oddsdfsplit<-split(oddsdf,oddsdf$FactorVariable)
 
 outputnames<-c('Integron','BiocideMetalResistance','ConjugativeSystem','RepliconCarriage','HostTaxonomy','Virulence','GeographicLocation','IsolationSource')
-ggtitles<-c('Integron presence\nreference: absence','Biocide/metal resistance gene presence\nreference: absence','Conjugative system\nreference: non-mobilisable','Replicon type carriage\nreference: untyped','Host taxonomy\nreference: Enterobacteriaceae','Virulence gene presence\nreference: absence','Geographic location\nreference: high-income','Isolation source\nreference: human')
+ggtitles<-c('Integron presence\nreference: absence','Biocide/metal resistance gene presence\nreference: absence','Conjugative system\nreference: non-mobilisable','Replicon carriage\nreference: untyped','Host taxonomy\nreference: Enterobacteriaceae','Virulence gene presence\nreference: absence','Geographic location\nreference: high-income','Isolation source\nreference: human')
 factorlevels<-list(c('presence'),c('presence'),c('mobilisable','conjugative'),c('single-replicon','multi-replicon'),c("Proteobacteria_non-Enterobacteriaceae", "Firmicutes","other"),c('presence'),c("China", "United States", "other","middle-income", "EU & UK"),c("livestock","other"))
 factorlabels<-list(c('presence'),c('presence'),c('mobilisable','conjugative'),c('single-replicon','multi-replicon'),c("Proteobacteria (non-Enterobacteriaceae)", "Firmicutes","other"),c('presence'),c("China", "United States", "other","middle-income", "EU & UK"),c("livestock","other"))
 outcomeclasses<-c('aminoglycoside','sulphonamide','tetracycline','phenicol','macrolide','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')

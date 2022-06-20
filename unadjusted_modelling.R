@@ -1,4 +1,4 @@
-pacman::p_load(mgcv, mgcv.helper, RColorBrewer, mgcViz, scales, grid, cowplot, devtools, gsubfn, stringr)
+pacman::p_load(tidyverse, mgcv, mgcv.helper, RColorBrewer, mgcViz, scales, grid, cowplot, devtools, gsubfn, stringr)
 set.seed(42)
 source('functions.R')
 
@@ -14,6 +14,7 @@ modelname<-args[1]
 #modelname<-'InsertionSequenceDensity'
 #modelname<-'NumOtherResistanceClasses'
 #modelname<-'CollectionDate'
+#modelname<-'CollectionDate_NonImputedCollectionDates'
 
 # create output directories
 dir.create(file.path('output_unadjusted',modelname), showWarnings = FALSE)
@@ -38,7 +39,7 @@ if (modelname=='log10PlasmidSize') {
   frmtext<-'outcome%s~s(NumOtherResistanceClasses,k=5,pc=0)'
   myggtitle<-'       reference: 0 other ARG types\n'
   myxlab<-'Number of other ARG types'
-} else if (modelname=='CollectionDate') {
+} else if (modelname=='CollectionDate' || modelname=='CollectionDate_NonImputedCollectionDates') {
   frmtext<-'outcome%s~s(CollectionDate,k=5,pc=0)'
   myggtitle<-'       reference: collection year 1994\n'
   myxlab<-'Collection date'
@@ -74,6 +75,10 @@ for (outcomeclass in outcomeclasses) {
   finaldftrunc[,gsub('%s',outcomeclass,'outcome%s')]<-as.factor(finaldftrunc[,gsub('%s',outcomeclass,'outcome%s')])
 }
 
+if (modelname == 'CollectionDate_NonImputedCollectionDates') {
+  finaldftrunc <- finaldftrunc %>% filter(!is.na(CollectionDate_Original))
+  print(str_c('Analysing plasmids with non-imputed collection dates. N = ', nrow(finaldftrunc)))
+}
 
 # ---------------------------
 # MODELLING/PLOTTING USING MGCV PLOT.GAM
@@ -194,6 +199,11 @@ if (modelname=='CollectionDate') {
   upperlim<-10
   upperlim_prob<-0.4
 }
+if (modelname=='CollectionDate_NonImputedCollectionDates') {
+  lowerlim<--2
+  upperlim<-10
+  upperlim_prob<-0.4
+}
 
 #create list of smooth plots to be combined in a grid
 smoothplotlistnest1<-list()
@@ -254,7 +264,7 @@ for (j in 1:length(outcomeclasses)) {
     o2<-o2 + scale_x_continuous(labels = log10size_tokb, breaks = c(-0.522,0,0.5444,1,1.478))
     o3<-o3 + scale_x_continuous(labels = log10size_tokb, breaks = c(-0.522,0,0.5444,1,1.478))
   }
-  if (modelname=='CollectionDate') {
+  if (modelname=='CollectionDate' || modelname=='CollectionDate_NonImputedCollectionDates') {
     o1<-o1 + scale_x_continuous(labels = yearsince_tocollectionyear) + theme(axis.text.x = element_text(angle = 30, hjust=1,vjust=1))
     o2<-o2 + scale_x_continuous(labels = yearsince_tocollectionyear) + theme(axis.text.x = element_text(angle = 30, hjust=1,vjust=1))
     o3<-o3 + scale_x_continuous(labels = yearsince_tocollectionyear) + theme(axis.text.x = element_text(angle = 30, hjust=1,vjust=1))
