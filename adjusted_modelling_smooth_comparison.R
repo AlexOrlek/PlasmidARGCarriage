@@ -1,6 +1,6 @@
 pacman::p_load(tidyverse, mgcv, mgcv.helper, RColorBrewer, mgcViz, grid, gsubfn)
 
-alternativemodelnames<-c('minus_NumOtherResistanceClasses','minus_Integron','minus_BiocideMetalResistance','minus_RepliconCarriage','minus_HostTaxonomy','minus_log10PlasmidSize','minus_RepliconCarriage_NumOtherResistanceClasses','minus_BiocideMetalResistance_NumOtherResistanceClasses','minus_Integron_NumOtherResistanceClasses','minus_BiocideMetalResistance_Integron')
+alternativemodelnames<-c('minus_NumOtherResistanceClasses','minus_Integron','minus_BiocideMetalResistance','minus_RepliconCarriage','minus_HostTaxonomy','minus_ConjugativeSystem','minus_log10PlasmidSize','minus_RepliconCarriage_NumOtherResistanceClasses','minus_BiocideMetalResistance_NumOtherResistanceClasses','minus_Integron_NumOtherResistanceClasses','minus_BiocideMetalResistance_Integron')
 
 outcomeclasses<-c('aminoglycoside','sulphonamide','tetracycline','phenicol','macrolide','trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
 outputnames<-c('log10PlasmidSize','InsertionSequenceDensity','NumOtherResistanceClasses','CollectionDate')
