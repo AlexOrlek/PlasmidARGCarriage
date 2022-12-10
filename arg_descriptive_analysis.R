@@ -10,7 +10,6 @@ colnames(plasmiddf) <- colnames(plasmiddf) %>% str_replace_all("^\'|\'$", "")
 
 # ---------------------------
 # AMINOGLYCOSIDE/SULPHONAMIDE CO-OCCURRENCE
-#restyping %>% filter(str_detect(ARGlabel, ';')) %>% filter(str_detect(ARGlabel, 'sul1') & str_detect(ARGlabel, 'aadA2b')) %>% select(ARGlabel) %>% nrow()  # 90 edges between aadA2b and sul1
 
 restyping_ami_sul <- restyping %>% filter(str_detect(ARGType, 'aminoglycoside') | str_detect(ARGType, 'sulphonamide'))
 
@@ -27,8 +26,6 @@ for (i in 1:nrow(restyping_ami_sul)) {
 }
 
 restyping_ami_sul_edges <- do.call(rbind, restyping_list)
-#restyping_ami_sul_edges %>% mutate(edge = str_c(V1, V2)) %>% filter(str_detect(edge, 'sul1') & str_detect(edge, 'aadA2b')) %>% distinct(Accession) %>% nrow()
-#restyping_ami_sul_edges %>% mutate(edge = str_c(V1, V2)) %>% count(edge) %>% arrange(desc(n))
 
 # exclude same ARG type pairs
 restyping_ami_sul_edges <- restyping_ami_sul_edges %>% filter((str_detect(V1, 'aminoglycoside') & str_detect(V2, 'sulphonamide')) | (str_detect(V1, 'sulphonamide') & str_detect(V2, 'aminoglycoside'))) %>% mutate(edge = str_c(V1, V2, sep = '--'))
@@ -102,58 +99,3 @@ qnrB19_reptypes <- restyping_qnl_small %>% filter(str_detect(ARGlabel, 'qnrB19')
 
 # save
 write.xlsx(list("qnl_ARG_count" = restyping_qnl_small_count, "qnrD1_reptypes" = qnrD1_reptypes, "qnrS2_reptypes" = qnrS2_reptypes, "qnrB19_reptypes" = qnrB19_reptypes), file = "output_descriptive_analysis/qnl_small_plasmids.xlsx")
-
-
-
-
-#################### OLD
-
-hist(log10(restyping_qnl$PlasmidSize))
-test <- plasmiddf %>% mutate(PlasmidSize = as.numeric(SequenceLength)) %>% filter(PlasmidSize < 500000)
-hist(log10(test$PlasmidSize))
-
-
-restyping_qnl_small %>% count(RepliconType) %>% arrange(desc(n))
-restyping_qnl_small %>% count(ARGName) %>% arrange(desc(n))  # need to split apart and tally individual genes (max 1 per plasmid)
-# need to ask what plasmids carry the major qnr genes. First ask what are the most common quinolone ARGs. For top quinolone ARGs, what are the most common replicon type haplotpes and types.
-
-
-
-
-##################### DEBUGGING
-# problem KP975077.1 has 3 edges that are the same
-ARGlabels <- restyping %>% as.data.frame() %>% filter(Accession == 'KP975077.1') %>% select(ARGlabel)
-#ARGlabels <- sort(unique(str_split(ARGlabels, '; ', simplify = TRUE)))  # fail
-is.vector(unlist(str_split(ARGlabels, '; ')))
-
-
-
-
-
-
-
-
-############################### OLD CODE
-# separate collapsed column data into rows
-restyping <- restyping %>% separate_rows(ARGProbe, ARGName, ARGClass, ARGType, ARGlabel, sep = '; ')
-
-# exclude duplicate ARGs per plasmid
-#restyping %>% nrow()  # 27237
-#restyping %>% group_by(Accession, ARGlabel) %>% slice_head(n = 1) %>% nrow()  # 26304
-restyping <- restyping %>% group_by(Accession, ARGlabel) %>% slice_head(n = 1) %>% ungroup()
-
-# ---------------------------
-# ANALYSE CO-OCCURRENCE OF AMINOGLYCOSIDE/SULPHONAMIDE
-# create edgelist from ARGlabel column
-restyping_ami_sul <- restyping %>% filter(str_detect(ARGType, 'aminoglycoside') | str_detect(ARGType, 'sulphonamide'))
-restyping_ami_sul <- restyping_ami_sul %>% separate_rows(ARGProbe, ARGName, ARGClass, ARGType, ARGlabel, sep = '; ')
-
-restyping_ami_sul <- restyping_ami_sul %>% as.data.frame() %>% select(Accession, ARGlabel) %>% group_by(Accession) %>%
-  filter(n()>=2) %>% group_by(Accession) %>%
-  do(data.frame(t(combn(.$ARGlabel, 2)), stringsAsFactors=FALSE))
-
-restyping_ami_sul_edges <- restyping_ami_sul %>% filter((str_detect(X1, 'aminoglycoside') & str_detect(X2, 'sulphonamide')) | (str_detect(X1, 'sulphonamide') & str_detect(X2, 'aminoglycoside'))) %>% mutate(edge = str_c(X1, X2, sep = '--'))
-
-
-restyping_ami_sul_edges %>% count(edge) %>% arrange(desc(n)) %>% separate(col = edge, into = c('gene1', 'gene2'), sep = '--')
-

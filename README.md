@@ -10,11 +10,12 @@ Separate logistic GAM models are constructed for 10 major ARG type outcomes.<br>
 # Instructions for running code
 
 ```
-# exploratory analysis: data wrangling and transformation prior to modelling; investigating associations between variables
+# exploratory analysis: data wrangling and transformation prior to modelling; investigating associations between variables; descriptive analysis of ARGs
 
 Rscript exploratory_analysis.R
 Rscript exploratory_analysis_characteristics.R 
 Rscript exploratory_analysis_confounding.R
+Rscript arg_descriptive_analysis.R
 
 # unadjusted analysis: calculate and plot unadjusted odds ratios
 
