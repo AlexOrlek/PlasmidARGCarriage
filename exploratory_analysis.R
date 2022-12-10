@@ -3,51 +3,46 @@ source('functions.R')
 dir.create('output_exploratory', showWarnings = FALSE)
 
 # load data
-plasmiddf<-convert(in_file = 'data/Data_S1.xlsx',out_file='data/Data_S1H.tsv',in_opts=list(sheet='H'))  # data is quoted to preserve dates; convert to tsv and re-load data
-plasmiddf<-read.table('data/Data_S1H.tsv',header=TRUE,quote="'",sep='\t',as.is=TRUE)
+plasmiddf<-convert(in_file = 'data/Data_S1.xlsx',out_file='data/Data_S1G.tsv',in_opts=list(sheet='G'))  # data is quoted to preserve dates; convert to tsv and re-load data
+plasmiddf<-read.table('data/Data_S1G.tsv',header=TRUE,quote="'",sep='\t',as.is=TRUE)
 plasmiddf<-plasmiddf[plasmiddf$InFinalDataset==TRUE,]
 #nrow(plasmiddf) #14143
 plasmiddf <- plasmiddf %>% rename(carbapenem = betalactam_carbapenem, ESBL = betalactam_ESBL, `TEM-1` = betalactam_TEM.1)
 outcomeclasses<-c('aminoglycoside','sulphonamide','tetracycline','phenicol','macrolide', 'trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
+outcomeclasses_all <- plasmiddf %>% select(aminoglycoside:trimethoprim) %>% colnames()
+
 
 # ---------------------------
 # resistance class outcome variables
 
 # get colsums for resistance genes; convert resistance outcomes to binary; write totals/binary totals to file
 resgene_data <- get_resgene_data(plasmiddf, outcomeclasses)
+resgene_data_all <- get_resgene_data(plasmiddf, outcomeclasses_all)
 write.table(resgene_data$total_genes,file='output_exploratory/resgenestotalbyclass.tsv',sep='\t',col.names = TRUE,row.names = TRUE)
+write.table(resgene_data_all$total_genes,file='output_exploratory/resgenestotalbyclass_all.tsv',sep='\t',col.names = TRUE,row.names = TRUE)
 write.table(resgene_data$total_plasmids,file='output_exploratory/resgenestotalplasmidsbyclass.tsv',sep='\t',col.names = TRUE,row.names = TRUE)
+write.table(resgene_data_all$total_plasmids,file='output_exploratory/resgenestotalplasmidsbyclass_all.tsv',sep='\t',col.names = TRUE,row.names = TRUE)
 
 # plot resistance class interaction heatmap (coloured by proportion of total class)
-orderoutcomeclasses<-match(rownames(resgene_data$total_plasmids),outcomeclasses)
-orderoutcomeclasses<-orderoutcomeclasses[!is.na(orderoutcomeclasses)]
-for (arg in c('counts', 'prop')) {
-  resgeneclasseshm_byfreq<-resclassheatmap(resgene_data$resgenedfbinary,outcomeclasses[orderoutcomeclasses],twoway=TRUE,hmtype=arg)
-  resgeneclasseshm<-resclassheatmap(resgene_data$resgenedfbinary,outcomeclasses,twoway=TRUE,hmtype=arg)
-  pdf(gsub('%s', arg, 'output_exploratory/resgeneclasseshm_%s_byfreq.pdf'))
-  plot(resgeneclasseshm_byfreq)
-  dev.off()
-  pdf(gsub('%s', arg, 'output_exploratory/resgeneclasseshm_%s.pdf'))
-  plot(resgeneclasseshm)
-  dev.off()
-}
+hm_plots <- resclassheatmap(resgene_data$resgenedfbinary, outcomeclasses)
+pdf('output_exploratory/resgeneclasseshm_jaccard.pdf')
+plot(hm_plots$`jaccard heatmap`)
+dev.off()
+pdf('output_exploratory/resgeneclasseshm_overlap_coefficient.pdf')
+plot(hm_plots$`overlap coefficient heatmap`)
+dev.off()
 
 # as above but for recent set of plasmids (collection date >=2016)
 plasmidf_recent <- plasmiddf %>% mutate(CollectionDate = str_split(CollectionDate, pattern ='-', simplify = TRUE)[,1]) %>% filter(CollectionDate != "-" & CollectionDate != "") %>% mutate(CollectionDate = as.numeric(CollectionDate)) %>% filter(CollectionDate >= 2016)
 resgene_data_recent <- get_resgene_data(plasmidf_recent, outcomeclasses)
 
-orderoutcomeclasses<-match(rownames(resgene_data_recent$total_plasmids),outcomeclasses)
-orderoutcomeclasses<-orderoutcomeclasses[!is.na(orderoutcomeclasses)]
-for (arg in c('counts', 'prop')) {
-  resgeneclasseshm_byfreq<-resclassheatmap(resgene_data_recent$resgenedfbinary,outcomeclasses[orderoutcomeclasses],twoway=TRUE,hmtype=arg)
-  resgeneclasseshm<-resclassheatmap(resgene_data_recent$resgenedfbinary,outcomeclasses,twoway=TRUE,hmtype=arg)
-  pdf(gsub('%s', arg, 'output_exploratory/resgeneclasseshm_%s_byfreq_recent.pdf'))
-  plot(resgeneclasseshm_byfreq)
-  dev.off()
-  pdf(gsub('%s', arg, 'output_exploratory/resgeneclasseshm_%s_recent.pdf'))
-  plot(resgeneclasseshm)
-  dev.off()
-}
+hm_plots_recent <- resclassheatmap(resgene_data_recent$resgenedfbinary, outcomeclasses)
+pdf('output_exploratory/resgeneclasseshm_jaccard_recent.pdf')
+plot(hm_plots_recent$`jaccard heatmap`)
+dev.off()
+pdf('output_exploratory/resgeneclasseshm_overlap_coefficient_recent.pdf')
+plot(hm_plots_recent$`overlap coefficient heatmap`)
+dev.off()
 
 
 # ---------------------------

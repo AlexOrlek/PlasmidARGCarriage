@@ -1,4 +1,4 @@
-pacman::p_load(ggplot2, reshape2)
+pacman::p_load(ggplot2, reshape2, stringr)
 
 # ---------------------------
 # exploratory analysis functions
@@ -34,45 +34,59 @@ crosstabulate<-function(plasmiddf,outcomeclass,factorvar) {
   return(crosstable)
 }
 
-# heatmap of resistance gene class intersections
-#http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization #used correlation heat map code
-#https://stackoverflow.com/questions/34659782/creation-of-a-contingency-table-based-on-two-columns-of-a-binary-matrix
-resclassheatmap<-function(mymatrixinput,resclasses,twoway=TRUE,onewayplotlower=TRUE,hmtype='counts',hmtitle='') {
-  # convert binary matrix to proportions
-  resgenedfbinarymat<-t(apply(mymatrixinput[,resclasses], 2, function(x) apply(mymatrixinput[,resclasses], 2, function(y) sum(x==1 & y ==1))))
-  if (twoway==TRUE) {
-    diag(resgenedfbinarymat)<-0
-  } else {
-    if (onewayplotlower==TRUE) {
-      resgenedfbinarymat[lower.tri(resgenedfbinarymat)] <- 0
-      resgenedfbinarymat[lower.tri(resgenedfbinarymat,diag=TRUE)] <- 0
-    } else {
-      resgenedfbinarymat[upper.tri(resgenedfbinarymat)] <- 0
-      resgenedfbinarymat[upper.tri(resgenedfbinarymat,diag=TRUE)] <- 0
+# heatmap functions for visualising resistance gene class intersections
+simililarity_index = function(x, y) {
+  intersection <- sum(x == 1 & y == 1)
+  union <- sum(x == 1 | y == 1)
+  min_xy <- min(sum(x == 1), sum(y == 1))
+  jaccard_similarity <- intersection / union
+  overlap_coefficient <- intersection / min_xy
+  return(list("jaccard_similarity" = jaccard_similarity, "overlap_coefficient" = overlap_coefficient, "intersection" = intersection, "union" = union, "min_xy" = min_xy))
+}
+
+resclassheatmap <- function(mymatrixinput, resclasses) {
+  mymatrixinput <- mymatrixinput[,resclasses]
+  # calculate similarity indices (jaccard and overlap coefficient) and count intersections
+  m_jaccard <- matrix(data = NA, nrow = length(resclasses), ncol = length(resclasses))  # jaccard similarity matrix
+  m_overlap_coefficient <- matrix(data = NA, nrow = length(resclasses), ncol = length(resclasses))  # overlap coefficient matrix
+  m_intersection <- matrix(data = NA, nrow = length(resclasses), ncol = length(resclasses))  # count matrix of intersections
+  for (i in 1:length(resclasses)) {  # rows
+    for (j in 1:length(resclasses)) {  # columns
+      if (i > j) {  # lower left triangle
+        m_jaccard[i,j] <- 0
+        m_overlap_coefficient[i,j] <- 0
+        m_intersection[i,j] <- NA
+      }
+      else if (i == j) {
+        m_jaccard[i,j] <- 0
+        m_overlap_coefficient[i,j] <- 0
+        m_intersection[i,j] <- sum(mymatrixinput[,i])
+      } else {  # j > i : column index > row index (fill out upper right triangle)
+        output <- simililarity_index(mymatrixinput[,i], mymatrixinput[,j])
+        m_jaccard[i,j] <- output$jaccard_similarity
+        m_overlap_coefficient[i,j] <- output$overlap_coefficient
+        m_intersection[i,j] <- output$intersection
+      }
     }
   }
-  mypropmatrix<-resgenedfbinarymat/colSums(mymatrixinput[,resclasses])
-  # convert matrix to long dataframe  
-  melted_hm <- reshape2::melt(mypropmatrix, na.rm = TRUE)
-  # plot heatmap
-  if (hmtype=='counts') {
-    mygeomtext<-as.character(resgenedfbinarymat)
-    mygeomtext[mygeomtext=='0']<-''
-    #add totals to diagonal
-    mygeomtext[seq(1,length(mygeomtext),nrow(resgenedfbinarymat)+1)]<-colSums(mymatrixinput[,resclasses])
-    # plot
-    ggplot(data = melted_hm, aes(Var2, Var1, fill = value)) + geom_tile(color = "white") +
-      scale_fill_gradientn(colours=c("white", "light blue", "red"), limit = c(0,max(mypropmatrix)), space = "Lab", name="Proportion") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),plot.title = element_text(size=11)) + coord_fixed() +ylab("") + xlab("") + geom_text(aes(label = mygeomtext)) + ggtitle(hmtitle)
-  }
-  else if (hmtype=='prop') {
-    mygeomtext<-as.character(round(mypropmatrix,2))
-    mygeomtext[mygeomtext=='0']<-''
-    ggplot(data = melted_hm, aes(Var2, Var1, fill = value)) + geom_tile(color = "white") +
-      scale_fill_gradientn(colours=c("white", "light blue", "red"), limit = c(0,max(mypropmatrix)), space = "Lab", name="Proportion") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),plot.title = element_text(size=11)) + coord_fixed() +ylab("") + xlab("") + geom_text(aes(label = mygeomtext)) + ggtitle(hmtitle)
-  }
-  else {
-    print('hmtype unrecognised')
-  }
+  # plot heatmps
+  hm_text <- str_replace_na(as.character(m_intersection),'')
+  
+  # jaccard heatmap
+  colnames(m_jaccard) <- outcomeclasses
+  rownames(m_jaccard) <- outcomeclasses
+  melted_m_jaccard <- reshape2::melt(m_jaccard, na.rm = TRUE)
+  
+  p_jaccard <- ggplot(data = melted_m_jaccard, aes(Var1, Var2, fill = value)) + geom_tile(color = "white") + scale_fill_gradientn(colours=c("white", "light blue", "red"), limit = c(0,max(m_jaccard)), name="Jaccard\nsimilarity coefficient") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), plot.title = element_text(size=11)) + coord_fixed() + ylab("") + xlab("") + geom_text(aes(label = hm_text)) + ggtitle('')
+  
+  # overlap coefficient heatmap
+  colnames(m_overlap_coefficient) <- outcomeclasses
+  rownames(m_overlap_coefficient) <- outcomeclasses
+  melted_m_sim <- reshape2::melt(m_overlap_coefficient, na.rm = TRUE)
+  
+  p_overlap_coefficient <- ggplot(data = melted_m_sim, aes(Var1, Var2, fill = value)) + geom_tile(color = "white") + scale_fill_gradientn(colours=c("white", "light blue", "red"), limit = c(0,max(m_overlap_coefficient)), name="Overlap coefficient") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), plot.title = element_text(size=11)) + coord_fixed() + ylab("") + xlab("") + geom_text(aes(label = hm_text)) + ggtitle('')
+  
+  return(list('jaccard heatmap' = p_jaccard, 'overlap coefficient heatmap' = p_overlap_coefficient))
 }
 
 
