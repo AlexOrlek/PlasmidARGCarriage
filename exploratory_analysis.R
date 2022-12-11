@@ -1,13 +1,14 @@
-pacman::p_load(tidyverse, gsubfn, knitr, rio, countrycode, cowplot, car, rcompanion, rstatix, eply)
+pacman::p_load(tidyverse, gsubfn, knitr, rio, readxl, countrycode, cowplot, car, rcompanion, rstatix, eply)
 source('functions.R')
 dir.create('output_exploratory', showWarnings = FALSE)
 
 # load data
-plasmiddf<-convert(in_file = 'data/Data_S1.xlsx',out_file='data/Data_S1G.tsv',in_opts=list(sheet='G'))  # data is quoted to preserve dates; convert to tsv and re-load data
-plasmiddf<-read.table('data/Data_S1G.tsv',header=TRUE,quote="'",sep='\t',as.is=TRUE)
-plasmiddf<-plasmiddf[plasmiddf$InFinalDataset==TRUE,]
+plasmiddf <- read_excel("data/Data_S1.xlsx", sheet = 'G')
+plasmiddf <- plasmiddf %>% mutate(across(everything(), ~ str_replace_all(.x, "^\'|\'$", "")))
+colnames(plasmiddf) <- colnames(plasmiddf) %>% str_replace_all("^\'|\'$", "")
+plasmiddf <- plasmiddf %>% mutate(InFinalDataset = as.logical(InFinalDataset), SequenceLength = as.integer(SequenceLength)) %>% mutate(across(starts_with('Num'), ~ as.integer(.x))) %>% mutate(across(TotalResGenes:trimethoprim, ~ as.integer(.x))) %>% filter(InFinalDataset == TRUE) %>% as.data.frame()
 #nrow(plasmiddf) #14143
-plasmiddf <- plasmiddf %>% rename(carbapenem = betalactam_carbapenem, ESBL = betalactam_ESBL, `TEM-1` = betalactam_TEM.1)
+plasmiddf <- plasmiddf %>% rename(carbapenem = betalactam_carbapenem, ESBL = betalactam_ESBL, `TEM-1` = `betalactam_TEM-1`)
 outcomeclasses<-c('aminoglycoside','sulphonamide','tetracycline','phenicol','macrolide', 'trimethoprim','ESBL', 'carbapenem','quinolone','colistin')
 outcomeclasses_all <- plasmiddf %>% select(aminoglycoside:trimethoprim) %>% colnames()
 
@@ -461,6 +462,26 @@ for (outcomeclass in outcomeclasses) {
   NumOtherResistanceClasses95pct<-NumOtherResistanceClassestrunccutoffs[[outcomeclass]]
   cat(gsubfn('%1|%2',list('%1'=outcomeclass,'%2'=NumOtherResistanceClasses95pct),'%1 NumOtherResistanceClasses95pct: %2\n'),file=trunccutofffilename,append=TRUE)
 }
+
+
+
+# ---------------------------
+# frequency tables for host taxonomy, isolation source, geography (breakdown at level of species, un-merged isolation source, country)
+finaldftrunc_frequency_tables <- finaldftrunc
+finaldftrunc_frequency_tables$Country <- countries
+finaldftrunc_frequency_tables$Species <- plasmiddf$Species
+finaldftrunc_frequency_tables$IsolationSource_unmergedfactorlevels <- plasmiddf$IsolationSource_unmergedfactorlevels
+
+country_freq <- finaldftrunc_frequency_tables %>% group_by(GeographicLocation) %>% count(Country) %>% arrange(GeographicLocation, desc(n)) %>% slice_head(n=15)
+taxonomy_freq <- finaldftrunc_frequency_tables %>% group_by(HostTaxonomy) %>% count(Species) %>% arrange(HostTaxonomy, desc(n)) %>% slice_head(n=15)
+isolation_source_freq <- finaldftrunc_frequency_tables %>% group_by(IsolationSource) %>% count(IsolationSource_unmergedfactorlevels) %>% arrange(IsolationSource, desc(n)) %>% slice_head(n=15)
+
+taxonomy_replicon_freq <- finaldftrunc_frequency_tables %>% group_by(Species) %>% count(RepliconCarriage) %>% right_join((taxonomy_freq %>% rename('total plasmids' = 'n')), by = 'Species') %>% arrange(HostTaxonomy, desc(n), Species) %>% select(HostTaxonomy, Species, RepliconCarriage, n, `total plasmids`) %>% pivot_wider(names_from = RepliconCarriage, values_from = n) %>% mutate(across(where(is.integer), ~ ifelse(is.na(.x), 0, .x))) %>% mutate(typed = `single-replicon` + `multi-replicon`) %>% mutate(pct_typed = round((typed / `total plasmids`)*100, 1)) %>% mutate(typed = str_c(typed, ' (', pct_typed, ')')) %>% select(-pct_typed)
+
+write.table(country_freq,file='output_exploratory/frequency_table_country.tsv',sep='\t',row.names = TRUE,col.names = NA)
+write.table(taxonomy_freq,file='output_exploratory/frequency_table_host_taxonomy.tsv',sep='\t',row.names = TRUE,col.names = NA)
+write.table(isolation_source_freq,file='output_exploratory/frequency_table_isolation_source.tsv',sep='\t',row.names = TRUE,col.names = NA)
+write.table(taxonomy_replicon_freq,file='output_exploratory/frequency_table_host_taxonomy_replicon.tsv',sep='\t',row.names = TRUE,col.names = NA)
 
 
 # ---------------------------

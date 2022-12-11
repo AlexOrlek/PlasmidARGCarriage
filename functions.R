@@ -23,6 +23,7 @@ get_resgene_data <- function(plasmiddf, outcomeclasses) {
 crosstabulate<-function(plasmiddf,outcomeclass,factorvar) {
   plasmidf_crosstabulate<-plasmiddf
   outcomeclassbinary<-plasmidf_crosstabulate[,gsub('%s',outcomeclass,'outcome%s')]
+  outcomeclassbinary <- factor(outcomeclassbinary, levels = c(0, 1))
   crosstable<-table(outcomeclassbinary,as.factor(plasmidf_crosstabulate[,factorvar]))
   FactorLevel<-colnames(crosstable)
   Count_NonResistancePlasmids<-crosstable[1,]

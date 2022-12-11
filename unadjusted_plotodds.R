@@ -1,4 +1,4 @@
-pacman::p_load(tidyverse,scales,RColorBrewer,rwantshue)
+pacman::p_load(tidyverse,scales,RColorBrewer,rwantshue,ggtext)
 theme_set(theme_bw())
 
 oddsdf<-read.table('output_unadjusted/unadjustedodds.tsv',as.is = TRUE,sep='\t',header=TRUE)
@@ -75,4 +75,28 @@ for (i in 1:length(outputnames)) {
   print(p)
   dev.off()
 }
+
+
+
+# plot firmicutes / macrolide odds
+
+oddsdf_firmicutes<-read.table('output_unadjusted/firmicutes_analysis/unadjustedodds.tsv',as.is = TRUE,sep='\t',header=TRUE)
+baselineindices<-oddsdf_firmicutes$OddsRatio=='reference'
+baselineindices[is.na(baselineindices)]<-FALSE
+oddsdf_firmicutes<-oddsdf_firmicutes[!baselineindices,]
+oddsdf_firmicutes$logOddsRatio<-as.numeric(oddsdf_firmicutes$logOddsRatio)
+oddsdf_firmicutes$logLower95CI<-as.numeric(oddsdf_firmicutes$logLower95CI)
+oddsdf_firmicutes$logUpper95CI<-as.numeric(oddsdf_firmicutes$logUpper95CI)
+
+oddsdf_firmicutes <- oddsdf_firmicutes %>% filter(!FactorLevel %in% c('other', 'Proteobacteria_non-Enterobacteriaceae')) %>% mutate(FactorLevel = recode(FactorLevel, 'Firmicutes' = 'all Firmicutes')) %>% mutate(FactorLevel = str_replace_all(FactorLevel, "Firmicutes: ", "")) %>% mutate(FactorLevel = ifelse(FactorLevel == 'all Firmicutes', FactorLevel, str_c('*',FactorLevel,'*')))
+oddsdf_firmicutes$FactorLevel <- factor(oddsdf_firmicutes$FactorLevel, levels = c('all Firmicutes', head(sort(oddsdf_firmicutes$FactorLevel),-1)))
+
+p<-ggplot(oddsdf_firmicutes,aes(x=FactorLevel,y=logOddsRatio,color="#FF7F00")) + geom_hline(yintercept = 0,linetype='solid',colour='light grey',size=0.3) + geom_errorbar(aes(ymin=logLower95CI,ymax=logUpper95CI),colour='grey 42',linetype=1,width=0.5,size=0.4) + geom_point(size=2)
+
+p<-p + theme(legend.position="none",axis.text.x = element_markdown(angle=45,vjust=1,hjust=1,size=rel(1.3)),axis.text.y = element_text(size=rel(1.3)), strip.text.x = element_text(size=rel(1.3)), panel.grid.major=element_blank(), panel.grid.minor=element_blank(),axis.title.y = element_text(size=rel(1.3)), axis.title.x = element_blank(), plot.title = element_text(size=12)) + ylab('\nlog odds ratio (95% CI)') + ggtitle("Host taxonomy: Firmicutes; macrolide resistance carriage\nreference: Enterobacteriaceae")
+p<-p + scale_y_continuous(breaks = scales::pretty_breaks(n = 10),limits=c(-5,2))
+pdf('output_unadjusted/firmicutes_analysis/firmicutes_macrolide_unadjusted.pdf', width = 7, height = 7/1.159)
+print(p)
+dev.off()
+
 

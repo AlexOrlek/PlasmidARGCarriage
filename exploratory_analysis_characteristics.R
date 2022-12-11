@@ -1,4 +1,4 @@
-pacman::p_load(tidyverse, tableone, rio)
+pacman::p_load(tidyverse, tableone, rio, readxl)
 
 # load data
 finaldftrunc<-read.table('data/plasmiddf_transformed.tsv',header=TRUE,sep='\t',stringsAsFactors = TRUE,quote = "",comment.char = "")
@@ -45,14 +45,18 @@ nrow(finaldftrunc_resistant)
 
 
 # output resistant plasmid data for microreact
-resdf<- rio::import(file = "data/Data_S1.xlsx", sheet='G')
-plasmiddf<-read.table('data/Data_S1H.tsv',header=TRUE,quote="'",sep='\t',as.is=TRUE)
+resdf <- read_excel("data/Data_S1.xlsx", sheet = 'I')
+resdf <- resdf %>% mutate(ARGName = str_replace_all(ARGName, "; ", ",")) %>% as.data.frame()
+plasmiddf <- read_excel("data/Data_S1.xlsx", sheet = 'G')
+plasmiddf <- plasmiddf %>% mutate(across(everything(), ~ str_replace_all(.x, "^\'|\'$", ""))) %>% as.data.frame()
+colnames(plasmiddf) <- colnames(plasmiddf) %>% str_replace_all("^\'|\'$", "")
+
 
 microreact_data <- finaldftrunc_resistant %>% left_join(plasmiddf, by = 'Accession') %>% left_join(resdf, by = 'Accession')
 microreact_data <- microreact_data %>% mutate(CollectionDate2 = CollectionDate) %>% separate(col = CollectionDate, into = c("year", "month", "day"), sep = "-", fill = "right") %>% rename(CollectionDate = CollectionDate2)
 microreact_data <- microreact_data %>% mutate(LatitudeLongitude = ifelse(LatitudeLongitude == '-', '', LatitudeLongitude)) %>% separate(col = LatitudeLongitude, into = c("latitude", "longitude"), sep = ",") %>% mutate(latitude = str_replace_all(latitude, ' ', ''), longitude = str_replace_all(longitude, ' ', ''))
 
-microreact_data <- microreact_data %>% select(id = Accession, Description, CreateDate, SequenceLength, Phylum, Class, Order, Family, Genus, Species, BiosampleAccession, year, month, day, LocationDescription_uncurated, latitude, longitude, Country, IsolationSource__autocolour = IsolationSource_maincategories, BacMetGenes, NumBacMetGenes, VFDBgenes, NumVFDBgenes, MobType, ConjType, NumIntegron, NumIn0, NumCALIN, NumIS, RepliconType, RepliconFamily, ResistanceGenes, TotalResGenes, aminoglycoside, sulphonamide, tetracycline, phenicol, macrolide, trimethoprim, ESBL = betalactam_ESBL, carbapenem = betalactam_carbapenem, quinolone, colistin)  # problem also need to import resistance genes; try just joining pre-created microreact data
+microreact_data <- microreact_data %>% select(id = Accession, Description, CreateDate, SequenceLength, Phylum, Class, Order, Family, Genus, Species, BiosampleAccession, year, month, day, LocationDescription_uncurated, latitude, longitude, Country, IsolationSource__autocolour = IsolationSource_maincategories, BacMetGenes, NumBacMetGenes, VFDBgenes, NumVFDBgenes, MobType, ConjType, NumIntegron, NumIn0, NumCALIN, NumIS, RepliconType, RepliconFamily, ResistanceGenes = ARGName, TotalResGenes, aminoglycoside, sulphonamide, tetracycline, phenicol, macrolide, trimethoprim, ESBL = betalactam_ESBL, carbapenem = betalactam_carbapenem, quinolone, colistin)  # problem also need to import resistance genes; try just joining pre-created microreact data
 
 write.table(microreact_data, file = 'data/microreact-data-ncbi-plasmid-antibiotic-resistance.tsv', sep = '\t', col.names = TRUE, row.names = FALSE, na = "")
 
