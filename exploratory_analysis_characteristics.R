@@ -37,20 +37,23 @@ finaldftrunc$`Geographic location`<-factor(finaldftrunc$`Geographic location`,le
 levels(finaldftrunc$`Isolation source`)<-c('Human','Livestock','Other')
 finaldftrunc$`Isolation source`<-factor(finaldftrunc$`Isolation source`,levels=c('Human','Livestock','Other'))
 
-
-# split data into resistant / non-resistant plasmids
-finaldftrunc_resistant <- finaldftrunc[finaldftrunc %>% select(starts_with('outcome')) %>% rowSums() > 0,]
-finaldftrunc_nonresistant <- finaldftrunc[finaldftrunc %>% select(starts_with('outcome')) %>% rowSums() == 0,]
-nrow(finaldftrunc_resistant)
-
-
-# output resistant plasmid data for microreact
+# load and join additional data
 resdf <- read_excel("data/Data_S1.xlsx", sheet = 'I')
 resdf <- resdf %>% mutate(ARGName = str_replace_all(ARGName, "; ", ",")) %>% as.data.frame()
 plasmiddf <- read_excel("data/Data_S1.xlsx", sheet = 'G')
 plasmiddf <- plasmiddf %>% mutate(across(everything(), ~ str_replace_all(.x, "^\'|\'$", ""))) %>% as.data.frame()
 colnames(plasmiddf) <- colnames(plasmiddf) %>% str_replace_all("^\'|\'$", "")
 
+# check if all EU & UK countries are high-income
+all_data <- finaldftrunc %>% left_join(plasmiddf, by = 'Accession') %>% left_join(resdf, by = 'Accession')
+eu_uk_countries <- all_data %>% filter(`Geographic location` == 'EU & UK') %>% distinct(Country)
+incomedf<-read.table('data/GlobalHealthObservatoryMetadata_edit.tsv',header=TRUE,sep='\t',as.is = TRUE,quote = "",comment.char = "")
+eu_uk_countries %>% left_join(incomedf, by = c('Country' = 'DisplayString')) %>% select(Country, WORLD_BANK_INCOME_GROUP_CODE)  # all except Romania are high-income (in WB 2018 categorisation)
+
+# split data into resistant / non-resistant plasmids and output resistant plasmid data for microreact
+finaldftrunc_resistant <- finaldftrunc[finaldftrunc %>% select(starts_with('outcome')) %>% rowSums() > 0,]
+finaldftrunc_nonresistant <- finaldftrunc[finaldftrunc %>% select(starts_with('outcome')) %>% rowSums() == 0,]
+nrow(finaldftrunc_resistant)
 
 microreact_data <- finaldftrunc_resistant %>% left_join(plasmiddf, by = 'Accession') %>% left_join(resdf, by = 'Accession')
 microreact_data <- microreact_data %>% mutate(CollectionDate2 = CollectionDate) %>% separate(col = CollectionDate, into = c("year", "month", "day"), sep = "-", fill = "right") %>% rename(CollectionDate = CollectionDate2)
